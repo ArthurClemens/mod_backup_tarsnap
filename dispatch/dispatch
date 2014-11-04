@@ -1,0 +1,12 @@
+[
+    {
+        admin_backup_tarsnap, 
+        ["admin", "backup-tarsnap"],
+        controller_admin_backup_tarsnap,
+        [
+            {template, "admin_backup_tarsnap.tpl"},
+            {acl, {use, mod_admin}}
+        ]
+    }
+].
+
