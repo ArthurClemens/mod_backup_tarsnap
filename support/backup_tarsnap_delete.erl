@@ -24,7 +24,7 @@ delete(Archives, Options, Context) ->
         ok -> 
             Identifier = backup_tarsnap_archive:identifier(Context),
             ArchiveData = backup_tarsnap_archive:parse_archive_names(Archives, Identifier),
-            mod_backup_tarsnap:update_archive_db(ArchiveData, Context),
+            backup_tarsnap_cache:put(ArchiveData, Context),
             % handle jobs
             lists:map(fun(Job) ->
                 JobArchives = [JobData || JobData <- ArchiveData, proplists:get_value(job, JobData) =:= Job],
@@ -32,7 +32,6 @@ delete(Archives, Options, Context) ->
             end, backup_tarsnap_job:jobs());
         Errors ->
             Msg = string:join(Errors, ", "),
-            lager:info("Msg=~p", [Msg]),
             mod_backup_tarsnap:broadcast_error(Msg, Context)
     end.
     

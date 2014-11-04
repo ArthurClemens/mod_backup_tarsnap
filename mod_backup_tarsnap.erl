@@ -27,44 +27,16 @@
     manage_schema/2,
     init/1,
     observe_admin_menu/3,
-    update_archive_db/2,
     debug/1,
     broadcast_error/2
 ]).
 
+
 %% @doc Install the tables needed.
 manage_schema(install, Context) ->
     %% This is a workaround for async initialization of the database tables; see github issues #734, #497
-    install_translations_table(z_context:prune_for_spawn(Context)),
+    backup_tarsnap_cache:init(z_context:prune_for_spawn(Context)),
     #datamodel{}.
-    
-install_translations_table(Context) ->
-    case z_db:table_exists(mod_backup_tarsnap, Context) of
-        false ->
-            z_db:create_table(mod_backup_tarsnap, [
-                #column_def{
-                    name=archive,
-                    type="text",
-                    is_nullable=false
-                },
-                #column_def{
-                    name=job,
-                    type="text",
-                    is_nullable=false
-                },
-                #column_def{
-                    name=date,
-                    type="text",
-                    is_nullable=false
-                },
-                #column_def{
-                    name=status,
-                    type="text",
-                    is_nullable=true
-                }
-            ], Context);
-        true -> ok
-    end.
 
 
 init(Context) ->
@@ -90,37 +62,10 @@ observe_admin_menu(admin_menu, Acc, _Context) ->
 
 backup(Context) ->
     backup_tarsnap_create:backup(Context).
-
-
-update_archive_db(ArchiveData, Context) ->
-    z_db:q("TRUNCATE mod_backup_tarsnap", Context),
-    lists:map(fun(Archive) ->
-        Date = proplists:get_value(date, Archive),
-        Seconds = calendar:datetime_to_gregorian_seconds(Date),
-        Columns = [
-            {archive, proplists:get_value(archive, Archive)},
-            {job, proplists:get_value(job, Archive)},
-            {date, z_convert:to_list(Seconds)},
-            {status, <<>>}
-        ],
-        {ok, _} = z_db:insert(mod_backup_tarsnap, Columns, Context)
-    end, ArchiveData).
-    
+ 
 
 list_backups(Context) ->
-    Query = "SELECT * FROM mod_backup_tarsnap ORDER BY date desc",
-    Archives = z_db:assoc(Query, Context),
-    lists:map(fun([{archive, Archive}, {job, Job}, {date, Date}, {status, Status}]) ->
-        Seconds = z_convert:to_integer(binary_to_list(Date)),
-        DateTime = calendar:gregorian_seconds_to_datetime(Seconds),
-        DateString = erlydtl_dateformat:format(DateTime, "Y-m-d H:i:s", Context),
-        [
-            Archive,
-            Job,
-            DateString,
-            Status
-        ]
-    end, Archives).
+    backup_tarsnap_cache:get(Context).
 
 
 check_configuration(Context) ->
