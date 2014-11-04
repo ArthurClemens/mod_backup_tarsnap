@@ -1,5 +1,7 @@
 # Zotonic module to create backups with Tarsnap
 
+**This is work in progress.**
+
 * Manages a grandfather-father-child backup scheme
 * Uses configurable time delta ranges, for example "6h 1d 1w 1m 1y"
 * Creates backups for database and files
