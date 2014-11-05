@@ -7,7 +7,7 @@ archives
         <tr>
             <th>{_ Archive name _}</th>
             <th>{_ Job _}</th>
-            <th>{_ Date _}</th>
+            <th>{_ Backup date _}</th>
         </tr>
     </thead>
     <tbody>
