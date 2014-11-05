@@ -1,6 +1,5 @@
 %% @author Arthur Clemens
 %% @copyright 2014 Arthur Clemens
-%% Generated on 2014-10-31
 %% @doc Archive related functions
 
 -module(backup_tarsnap_archive).
@@ -38,13 +37,12 @@ name(JobName, Context) ->
     name(Identifier, JobName, Context).
 
 %% name(string(), string(), Context) -> string()
-name(Identifier, JobName, Context) ->
-    Now = calendar:universal_time(),
+name(Identifier, JobName, _Context) ->
     Identifier
         ++ "-"
         ++ JobName
         ++ "-"
-        ++ binary_to_list(erlydtl_dateformat:format(Now, "Ymd-His", Context)).
+        ++ qdate:to_string("Ymd-His", calendar:universal_time()).
 
 
 parse_archive_names(Archives, Identifier) ->
@@ -60,7 +58,8 @@ parse_archive_names(Archives, Identifier) ->
 
 %% Returns the number of seconds of the archive date.
 date_seconds(ArchiveData) ->
-    calendar:datetime_to_gregorian_seconds(proplists:get_value(date, ArchiveData)).
+    Date = proplists:get_value(date, ArchiveData),
+    calendar:datetime_to_gregorian_seconds(Date).
 
 
 %% parses the date and extension from an archive name
