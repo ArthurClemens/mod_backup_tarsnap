@@ -21,7 +21,7 @@
             <div class="col-lg-4 col-md-6">
                 {% if backup_config.busy %}
                     <div class="alert alert-warning" role="alert">
-                        {_ Backup is in progress. _}
+                        {_ Tarsnap is working. _}
                     </div>
                 {% elseif backup_config.ok %}
                     <div class="alert alert-success" role="alert">
