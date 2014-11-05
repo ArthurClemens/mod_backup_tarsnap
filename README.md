@@ -82,7 +82,28 @@ If you are running Zotonic in debug mode, let the module write debug info to the
 ### Requirements
 
 * [Tarsnap](https://www.tarsnap.com) account
-* Working Tarsnap configuration (tarsnap.conf or ~/.tarsnaprc) that defines `cachedir` and `keyfile`. Note that the Zotonic user needs to access those files, so you might need to place those locations in the Zotonic user home directory.
+* Working Tarsnap configuration (tarsnap.conf or ~/.tarsnaprc) that defines `cachedir` and `keyfile`.
+
+Note that the Zotonic user needs to access configuration files, so you might need to place those locations in the Zotonic user home directory.
+
+#### Example setup
+
+As zotonic user:
+
+    $ mkdir ~/.tarsnap
+    $ mkdir ~/.tarsnap/tarsnap-cache
+    $ mv /root/tarsnap.key ~/.tarsnap/
+    $ vim ~/.tarsnaprc
+    
+    # Tarsnap cache directory
+    cachedir ~/.tarsnap/tarsnap-cache
+
+    # Tarsnap key file
+    keyfile ~/.tarsnap/tarsnap.key
+
+As root:
+
+    $sudo chown -R zotonic:zotonic /home/zotonic/.tarsnap/
 
 ### Install
 
