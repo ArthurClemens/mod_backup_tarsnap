@@ -1,11 +1,14 @@
 {% extends "admin_base.tpl" %}
 
-{% block title %} {_ Tarsnap Backups _} {% endblock %}
+{% block title %} {_ Tarsnap Backup _} {% endblock %}
 
 {% block content %}
     {% with m.acl.is_admin as is_editable %}
         <div class="admin-header">
             <h2>{_ Tarsnap Backups _}</h2>
+            <p>
+                {_ This page shows the list of automatically created archives. See the <a href="https://github.com/ArthurClemens/mod_backup_tarsnap">module documentation</a> for instructions. _}
+            </p>
         </div>
         <div class="row">
             <div class="col-lg-8 col-md-6">
