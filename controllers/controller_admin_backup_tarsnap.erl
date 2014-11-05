@@ -13,7 +13,7 @@ is_authorized(ReqData, Context) ->
 html(Context) ->
     Vars = [
         {page_admin_backup_tarsnap, true},
-        {backups, mod_backup_tarsnap:list_backups(Context)},
+        {archives, mod_backup_tarsnap:list_archives(Context)},
         {backup_config, mod_backup_tarsnap:check_configuration(Context)},
         {backup_in_progress, mod_backup_tarsnap:backup_in_progress(Context)}
     ],

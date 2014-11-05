@@ -17,7 +17,8 @@
 
 -export([
     backup/1,
-    list_backups/1,
+    refresh/1,
+    list_archives/1,
     check_configuration/1,
     backup_in_progress/1
 ]).
@@ -40,12 +41,11 @@ manage_schema(install, Context) ->
 
 
 init(Context) ->
-    Cfg = check_configuration(Context),
-    case Cfg of
-        ok -> ok;
-        Errors ->
-            Msg = string:join(Errors, ", "),
-            broadcast_error(Msg, Context),
+    Cfg = backup_tarsnap_service:check_configuration(Context),
+    case proplists:get_value(ok, Cfg) of
+        true -> ok;
+        false ->
+            mod_backup_tarsnap:debug("Tarsnap is not configured properly."),
             z_module_manager:deactivate(?MODULE, Context)
     end.
 
@@ -63,8 +63,21 @@ observe_admin_menu(admin_menu, Acc, _Context) ->
 backup(Context) ->
     backup_tarsnap_create:backup(Context).
  
+ 
+refresh(Context) ->
+    Archives = backup_tarsnap_service:archives(Context),
+    Cfg = backup_tarsnap_service:check_configuration(Context),
+    case proplists:get_value(ok, Cfg) of
+        true ->
+            ArchiveData = backup_tarsnap_service:archive_data(Archives, Context),
+            lager:info("ArchiveData=~p", [ArchiveData]),
+            {ok, ArchiveData};
+        false ->
+            {error, "Tarsnap is not configured properly."}
+    end.
 
-list_backups(Context) ->
+
+list_archives(Context) ->
     backup_tarsnap_cache:get(Context).
 
 
