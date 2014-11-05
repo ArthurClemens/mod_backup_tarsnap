@@ -1,6 +1,5 @@
 %% @author Arthur Clemens
 %% @copyright 2014 Arthur Clemens
-%% Generated on 2014-10-31
 %% @doc Tarsnap command/service related functions
 
 -module(backup_tarsnap_service).
@@ -66,7 +65,7 @@ archives(Context) ->
             Result = os:cmd(Cmd),
             string:tokens(Result, "\n");
         false -> 
-            ?zWarning("Tarsnap not installed or configured", Context),
+            ?zWarning("Problem getting the list of archives. Tarsnap is not installed or properly configured.", Context),
             []
     end.
 

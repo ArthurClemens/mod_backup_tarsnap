@@ -1,6 +1,5 @@
 %% @author Arthur Clemens
 %% @copyright 2014 Arthur Clemens
-%% Generated on 2014-10-31
 %% @doc Tarsnap deletion of archives
 
 -module(backup_tarsnap_delete).
@@ -34,15 +33,15 @@ delete(Archives, Options, Context) ->
     
 
 maybe_delete_for_job(Job, JobArchives, _Options, _Context) when JobArchives =:= [] ->
-    mod_backup_tarsnap:debug(io_lib:format("Delete job '~s':", [Job])),
+    mod_backup_tarsnap:debug(io_lib:format("Maybe delete job '~s'...", [Job])),
     mod_backup_tarsnap:debug("No archives found, nothing to delete.");
 
 maybe_delete_for_job(Job, JobArchives, _Options, _Context) when length(JobArchives) =:= 1 ->
-    mod_backup_tarsnap:debug(io_lib:format("Delete job '~s'", [Job])),
+    mod_backup_tarsnap:debug(io_lib:format("Maybe delete job '~s'...", [Job])),
     mod_backup_tarsnap:debug("Only 1 archive exists, so nothing to delete.");
     
 maybe_delete_for_job(Job, JobArchives, Options, Context) ->
-    mod_backup_tarsnap:debug(io_lib:format("Delete job '~s'", [Job])),
+    mod_backup_tarsnap:debug(io_lib:format("Maybe delete job '~s'...", [Job])),
     
     % Add property 'index' in order of the dates (from new to old)
     % so we have a handle of items to remove

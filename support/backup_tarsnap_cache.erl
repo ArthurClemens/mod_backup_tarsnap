@@ -1,6 +1,5 @@
 %% @author Arthur Clemens
 %% @copyright 2014 Arthur Clemens
-%% Generated on 2014-10-31
 %% @doc Stores slow calls to --list-archives for fast retrieval.
 
 -module(backup_tarsnap_cache).

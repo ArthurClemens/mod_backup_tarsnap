@@ -1,10 +1,8 @@
 # Zotonic module to create backups with Tarsnap
 
-**This is work in progress.**
-
 * Manages a grandfather-father-child backup scheme
-* Uses configurable time delta ranges, for example "6h 1d 1w 1m 1y"
-* Creates backups for database and files
+* Uses configurable backup schema, for example "6h 1d 1w 1m 1y"
+* Creates separate backups for database and files, optionally with different backup schemas
 * Automatically removes expired archives
 
 Inspired by [Tarsnapper](https://github.com/miracle2k/tarsnapper).
@@ -13,20 +11,19 @@ Inspired by [Tarsnapper](https://github.com/miracle2k/tarsnapper).
 ## Archive creation
 
 * Backup names follow the scheme: identifier-job-date-time. For example: `mysite-database-20141231-065959`.
-* The backup name does not contain information about the cycle it belongs to;  the date in the name is used to infer that information. The date always is written as `dddddd-tttttt`.
+* The backup name does not contain information about the cycle it belongs to;  the date in the name is used to infer that information. The date is 'universal time', written as `dddddd-tttttt`.
 * Jobs for Zotonic backups are: `database` and `files`.
 * A new backup is created as soon as the most recent backup is older than the first delta range.
 * Backups will not be skipped if you activate the module later in the day: when it detects that the most recent backup is older, a new backup is created.
 * Delta ranges can be changed at any time.
 
 
-## Cycles
+## Schema
 
-* Cycles are defined by freeform time delta ranges.
-* The default delta ranges are "1d 1w 1m 1y".
+* Schema cycles are defined by freeform time delta ranges, default: "1d 1w 1m 1y".
 * Each cycle ends at the next delta range; the first cycle runs from 1 day to 1 week old; the second from 1 week to 1 month.
 * The default values will maintain 7 daily backups, 4 weekly backups, 12 montly backups, and after that one backup for each year.
-* You can use  both `120` and `2h` for 2 hours; `3d` for 3 days; `6m` for six months; and so on.
+* You can use  both `120` and `2h` for 2 hours; `3d` for 3 days; `6m` for six months; and so on. The minimum delta is 10 minutes to reduce the load on the server and to prevent overlapping tasks.
 * The smallest delta range defines when new backups should be created: as soon as the most recent backup is older than this value (default: 1 day).
 
 
@@ -50,7 +47,7 @@ Inspired by [Tarsnapper](https://github.com/miracle2k/tarsnapper).
 
 These are the default values in /admin/config:
 
-| Module | Key | Value |
+| Module | Key | Default value |
 |--------|-----|-------|
 | mod_backup_tarsnap | deltas          | 1d 1w 1m 1y  |
 | mod_backup_tarsnap | deltas_files    | 1d 1w 1m 1y  |
@@ -60,7 +57,7 @@ These are the default values in /admin/config:
 
 The default identifier is the site's host name. You can change that with key `identifier`:
 
-| Module | Key | Value |
+| Module | Key | Default value |
 |--------|-----|-------|
 | mod_backup_tarsnap | identifier          | [host name]  |
 
