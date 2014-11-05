@@ -117,14 +117,25 @@ start_link(Args) when is_list(Args) ->
 %%                     ignore               |
 %%                     {stop, Reason}
 %% @doc Initiates the server.
-init(Args) ->    
+init(Args) ->
     process_flag(trap_exit, true),
     {context, Context} = proplists:lookup(context, Args),
+    case z_db:table_exists(mod_backup_tarsnap_cache, Context) of
+        false ->
+            backup_tarsnap_cache:init(Context);
+        true ->
+            ok
+    end,
     {ok, TimerRef} = timer:send_interval(?BCK_POLL_INTERVAL, periodic_backup),
-    {ok, #state{
+    State = #state{
         context = z_context:new(Context),
         backup_pid = undefined,
         timer_ref = TimerRef
+    },
+    % create first backup
+    Pid = do_backup(State),
+    {ok, State#state{
+        backup_pid = Pid
     }}.
 
 
