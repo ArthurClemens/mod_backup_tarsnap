@@ -1,6 +1,6 @@
 # Zotonic module to create backups with Tarsnap
 
-Stores backups at the online backup service Tarsnap ("Online backups for the truly paranoid"). Because backups stored on your own webserver are not really that safe.
+Manage backups of database and files to the Tarsnap online backup service ("Online backups for the truly paranoid"). Because backups stored on your own webserver are not safe enough.
 
 * Automatically creates backups and stores them - outside of your own server - with Tarsnap.
 * Manages a grandfather-father-child backup scheme.
@@ -32,6 +32,7 @@ Inspired by [Tarsnapper](https://github.com/miracle2k/tarsnapper).
 
 ## Archive expiration
 
+* Only archives with the same identifier are considered; archives created for other sites or using different naming schemes are ignored.
 * The date in the archive name is used to infer expiration dates. 
 * Calculation starts at the longest interval value (default 1 year). The archive that is closest to that date (the current date minus the interval) is marked as "to keep". Proximity is calculated with a range of plus/minus half an interval (in the example plus or minus half a year).
   * If older archives exist, we go further back in time (the interval value); this process continues until no older archives are found.
@@ -64,6 +65,16 @@ The default identifier is the site's host name. You can change that with key `id
 | Module | Key | Default value |
 |--------|-----|-------|
 | mod_backup_tarsnap | identifier          | [host name]  |
+
+
+### Debug info
+
+If you are running Zotonic in debug mode, let the module write debug info to the console when set to `true`:
+
+| Module | Key | Default value |
+|--------|-----|-------|
+| mod_backup_tarsnap | debug          | -  |
+
 
 
 ## Installation

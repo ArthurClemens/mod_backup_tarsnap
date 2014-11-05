@@ -24,7 +24,7 @@
 -export([
     manage_schema/2,
     observe_admin_menu/3,
-    debug/1,
+    debug/2,
     broadcast_error/2
 ]).
 
@@ -34,10 +34,8 @@
 
 -record(state, {context, backup_start, backup_pid, timer_ref}).
 
--define(STATE_DEBUG, true).
-
 % Interval for checking for new and/or changed files.
--define(BCK_POLL_INTERVAL, 10 * 60 * 1000). % in milliseconds, so 10 minutes
+-define(BCK_POLL_INTERVAL, 1000 * 60 * 10). % in milliseconds, so 10 minutes
 
 
 %% @doc Install the tables needed.
@@ -47,11 +45,11 @@ manage_schema(install, Context) ->
     #datamodel{}.
 
 
-observe_admin_menu(admin_menu, Acc, _Context) ->
+observe_admin_menu(admin_menu, Acc, Context) ->
     [
      #menu_item{id=yaml_import,
                 parent=admin_modules,
-                label="Backup to Tarsnap",
+                label=?__("Backup (Tarsnap)", Context),
                 url={admin_backup_tarsnap},
                 visiblecheck={acl, use, admin_backup_tarsnap}}
      |Acc].
@@ -88,8 +86,12 @@ broadcast_error(Result, Context) ->
     z_session_manager:broadcast(#broadcast{type="error", message=Result, title="Tarsnap", stay=true}, z_acl:sudo(Context)).
 
 
-debug(Msg) ->
-    case ?STATE_DEBUG of
+debug(Msg, Context) ->
+    case z_convert:to_bool(m_config:get_value(
+        mod_backup_tarsnap,
+        debug,
+        Context
+    )) of
         true -> lager:info(Msg);
         _ -> undefined
     end.

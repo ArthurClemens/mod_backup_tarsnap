@@ -28,24 +28,24 @@ backup(Archives, Options, Context) ->
                 maybe_backup_for_job(Job, JobArchives, Options, Context)
             end, backup_tarsnap_job:jobs());
         false ->
-            mod_backup_tarsnap:debug("Tarsnap is not configured properly.")
+            mod_backup_tarsnap:debug("Tarsnap is not configured properly.", Context)
     end.
 
 
 maybe_backup_for_job(Job, JobArchives, Options, Context) when JobArchives =:= []->
-    mod_backup_tarsnap:debug(io_lib:format("Maybe backup job '~s'...", [Job])),
-    mod_backup_tarsnap:debug("No archives found. A new archive will be created."),
+    mod_backup_tarsnap:debug(io_lib:format("Assess backup job '~s'...", [Job]), Context),
+    mod_backup_tarsnap:debug("No archives found. A new archive will be created.", Context),
     {Name, TmpDir} = prepare_backup(Job, Context),
     case proplists:get_value(test, Options) of
         true ->
-            mod_backup_tarsnap:debug(io_lib:format("An archive with name ~p will be created at path ~p", [Name, TmpDir])),
-            mod_backup_tarsnap:debug("Test ends here.");
+            mod_backup_tarsnap:debug(io_lib:format("An archive with name ~p will be created at path ~p", [Name, TmpDir]), Context),
+            mod_backup_tarsnap:debug("Test ends here.", Context);
         _ ->
             do_backup(Name, TmpDir, Job, Context)
     end;
 
 maybe_backup_for_job(Job, JobArchives, Options, Context) ->
-    mod_backup_tarsnap:debug(io_lib:format("Maybe backup job '~s'...", [Job])),
+    mod_backup_tarsnap:debug(io_lib:format("Assess backup job '~s'...", [Job]), Context),
     Sorted = lists:reverse(lists:sort(JobArchives)),
     [NewestArchive|_Rest] = Sorted,
     
@@ -58,20 +58,20 @@ maybe_backup_for_job(Job, JobArchives, Options, Context) ->
     
     case (NextBackupSeconds < NowSeconds) of 
         true ->        
-            mod_backup_tarsnap:debug(io_lib:format("The smallest interval is set to ~.2f hours. The most recent archive ~p is ~.2f hours older. A new archive is needed.", [IntervalSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)])),
+            mod_backup_tarsnap:debug(io_lib:format("The smallest interval is set to ~.2f hours. The most recent archive ~p is ~.2f hours older. A new backup is needed.", [IntervalSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)]), Context),
             {Name, TmpDir} = prepare_backup(Job, Context),
             case proplists:get_value(test, Options) of
                 true ->
-                    mod_backup_tarsnap:debug(io_lib:format("A archive with name ~p will be created at path ~p", [Name, TmpDir])),
-                    mod_backup_tarsnap:debug("Test ends here.");
+                    mod_backup_tarsnap:debug(io_lib:format("A archive with name ~p will be created at path ~p", [Name, TmpDir]), Context),
+                    mod_backup_tarsnap:debug("Test ends here.", Context);
                 _ ->
                     do_backup(Name, TmpDir, Job, Context)
             end;
         false ->
-            mod_backup_tarsnap:debug(io_lib:format("The smallest interval is set to ~.2f hours. The most recent archive ~p is ~.2f hours younger. No archive is needed.", [IntervalSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)])),
+            mod_backup_tarsnap:debug(io_lib:format("The smallest interval is set to ~.2f hours. The most recent archive ~p is ~.2f hours younger. No new backup is needed.", [IntervalSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)]), Context),
             case proplists:get_value(test, Options) of
                 true ->
-                    mod_backup_tarsnap:debug("Test ends here.");
+                    mod_backup_tarsnap:debug("Test ends here.", Context);
                 _ ->
                     undefined
             end

@@ -28,20 +28,20 @@ delete(Archives, Options, Context) ->
                 maybe_delete_for_job(Job, JobArchives, Options, Context)
             end, backup_tarsnap_job:jobs());
         false ->
-            mod_backup_tarsnap:debug("Tarsnap is not configured properly.")
+            mod_backup_tarsnap:debug("Tarsnap is not configured properly.", Context)
     end.
     
 
-maybe_delete_for_job(Job, JobArchives, _Options, _Context) when JobArchives =:= [] ->
-    mod_backup_tarsnap:debug(io_lib:format("Maybe delete job '~s'...", [Job])),
-    mod_backup_tarsnap:debug("No archives found, nothing to delete.");
+maybe_delete_for_job(Job, JobArchives, _Options, Context) when JobArchives =:= [] ->
+    mod_backup_tarsnap:debug(io_lib:format("Assess delete job '~s'...", [Job]), Context),
+    mod_backup_tarsnap:debug("No archives found, nothing to delete.", Context);
 
-maybe_delete_for_job(Job, JobArchives, _Options, _Context) when length(JobArchives) =:= 1 ->
-    mod_backup_tarsnap:debug(io_lib:format("Maybe delete job '~s'...", [Job])),
-    mod_backup_tarsnap:debug("Only 1 archive exists, so nothing to delete.");
+maybe_delete_for_job(Job, JobArchives, _Options, Context) when length(JobArchives) =:= 1 ->
+    mod_backup_tarsnap:debug(io_lib:format("Assess delete job '~s'...", [Job]), Context),
+    mod_backup_tarsnap:debug("Only 1 archive exists, so nothing to delete.", Context);
     
 maybe_delete_for_job(Job, JobArchives, Options, Context) ->
-    mod_backup_tarsnap:debug(io_lib:format("Maybe delete job '~s'...", [Job])),
+    mod_backup_tarsnap:debug(io_lib:format("Assess delete job '~s'...", [Job]), Context),
     
     % Add property 'index' in order of the dates (from new to old)
     % so we have a handle of items to remove
@@ -86,27 +86,27 @@ maybe_delete_for_job(Job, JobArchives, Options, Context) ->
         0 ->
             case proplists:get_value(test, Options) of
                 true ->
-                    mod_backup_tarsnap:debug("No backups to remove."),
-                    mod_backup_tarsnap:debug("Test ends here.");
+                    mod_backup_tarsnap:debug("No backups to remove.", Context),
+                    mod_backup_tarsnap:debug("Test ends here.", Context);
                 _ ->
-                    mod_backup_tarsnap:debug("No backups to remove.")
+                    mod_backup_tarsnap:debug("No backups to remove.", Context)
             end;
         _ -> 
             ToRemoveNames = backup_tarsnap_archive:archive_names(ToRemove),
             case proplists:get_value(test, Options) of
                 true ->
                     ToKeepNames = backup_tarsnap_archive:archive_names(UniqueToKeep),
-                    mod_backup_tarsnap:debug(io_lib:format("These archives will be kept: ~p", [ToKeepNames])),
-                    mod_backup_tarsnap:debug(io_lib:format("These archives will be removed: ~p", [ToRemoveNames])),
-                    mod_backup_tarsnap:debug("Test ends here.");
+                    mod_backup_tarsnap:debug(io_lib:format("These archives will be kept: ~p", [ToKeepNames]), Context),
+                    mod_backup_tarsnap:debug(io_lib:format("These archives will be removed: ~p", [ToRemoveNames]), Context),
+                    mod_backup_tarsnap:debug("Test ends here.", Context);
                 _ ->
-                    do_delete(ToRemoveNames)
+                    do_delete(ToRemoveNames, Context)
             end
     end.
 
     
-do_delete(Names) -> 
-    mod_backup_tarsnap:debug(io_lib:format("These archives will be removed: ~p", [Names])),
+do_delete(Names, Context) -> 
+    mod_backup_tarsnap:debug(io_lib:format("These archives will be removed: ~p", [Names]), Context),
     lists:map(fun(Name) ->
         backup_tarsnap_service:remove(Name),
         timer:sleep(1)
