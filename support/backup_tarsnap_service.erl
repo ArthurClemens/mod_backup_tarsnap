@@ -48,7 +48,7 @@ check_configuration_tarsnap(Context) ->
     ProcessingDir = z_path:files_subdir_ensure("processing", Context),
     Cmd = "tarsnap -c -f test --dry-run " ++ ProcessingDir,
     Result = os:cmd(Cmd),
-    case re:run(Result, "All archives") of 
+    case re:run(Result, "(All archives)|(Transaction already in progress)") of 
         {match, _Match} -> 
             true;
         _ -> 
@@ -65,7 +65,7 @@ archives(Context) ->
             Result = os:cmd(Cmd),
             string:tokens(Result, "\n");
         false -> 
-            ?zWarning("Problem getting the list of archives. Tarsnap is not installed or properly configured.", Context),
+            ?zWarning("Problem getting the list of archives. Tarsnap may be busy. If this error continues, Tarsnap is either not installed or properly configured.", Context),
             []
     end.
 

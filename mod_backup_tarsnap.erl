@@ -72,7 +72,16 @@ list_archives(Context) ->
 
 
 check_configuration(Context) ->
-    backup_tarsnap_service:check_configuration(Context).
+    case backup_in_progress(Context) of
+        true -> 
+            % assume that previous checks were ok
+            % otherwise no backup could be in progress
+            [
+                {busy, true}
+            ];
+        false -> 
+            backup_tarsnap_service:check_configuration(Context)
+    end.
 
 
 backup_in_progress(Context) ->
@@ -135,7 +144,8 @@ init(Args) ->
     % create first backup
     Pid = do_backup(State),
     {ok, State#state{
-        backup_pid = Pid
+        backup_pid = Pid,
+        backup_start=calendar:universal_time()
     }}.
 
 
@@ -158,7 +168,7 @@ handle_call(start_backup, _From, State) ->
             {reply, {error, in_progress}, State}
     end;
 
-%% @doc Return the start datetime of the current running backup, if any.
+%% @doc Returns boolean
 handle_call(in_progress_start, _From, State) ->
     {reply, State#state.backup_start, State};
 

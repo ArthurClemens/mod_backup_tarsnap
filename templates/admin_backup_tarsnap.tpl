@@ -19,9 +19,13 @@
                 </div>                
             </div>
             <div class="col-lg-4 col-md-6">
-                {% if backup_config.ok %}
+                {% if backup_config.busy %}
+                    <div class="alert alert-warning" role="alert">
+                        {_ Backup is in progress. _}
+                    </div>
+                {% elseif backup_config.ok %}
                     <div class="alert alert-success" role="alert">
-                        {_ Backup is running. _}
+                        {_ Backup is standby. _}
                     </div>
                 {% else %}
                     {% if backup_config.ok and is_editable %}
