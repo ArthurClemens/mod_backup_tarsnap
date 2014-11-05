@@ -1,4 +1,4 @@
--module(action_backup_tarsnap_backup_start).
+-module(action_backup_tarsnap_backup).
 -include("zotonic.hrl").
 -export([
     render_action/4, 
@@ -6,12 +6,12 @@
 ]).
 
 render_action(TriggerId, TargetId, _Args, Context) ->
-	{PostbackMsgJS, _PickledPostback} = z_render:make_postback(backup_start, undefined, TriggerId, TargetId, ?MODULE, Context),
+	{PostbackMsgJS, _PickledPostback} = z_render:make_postback(backup, undefined, TriggerId, TargetId, ?MODULE, Context),
 	{PostbackMsgJS, Context}.
 
 
 %% @spec event(Event, Context1) -> Context2
-event(#postback{message=backup_start}, Context) ->
+event(#postback{message=backup}, Context) ->
     case z_acl:is_allowed(use, mod_backup_tarsnap, Context) of
         true ->
             case mod_backup_tarsnap:backup(Context) of
