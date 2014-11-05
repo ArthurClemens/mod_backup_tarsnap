@@ -5,9 +5,9 @@
 {% block content %}
     {% with m.acl.is_admin as is_editable %}
         <div class="admin-header">
-            <h2>{_ Tarsnap Backups _}</h2>
+            <h2>{_ Tarsnap Backup _}</h2> 
             <p>
-                {_ This page shows the list of automatically created archives. See the <a href="https://github.com/ArthurClemens/mod_backup_tarsnap">module documentation</a> for instructions. _}
+                {_ Manage backups of database and files to the Tarsnap online backup service. _}
             </p>
         </div>
         <div class="row">
@@ -19,26 +19,33 @@
                 </div>                
             </div>
             <div class="col-lg-4 col-md-6">
-                {% if not backup_config.ok %}
-                    <div class="well">
-                        {% if backup_config.ok and is_editable %}
+                {% if backup_config.ok %}
+                    <div class="alert alert-success" role="alert">
+                        {_ Backup is running. _}
+                    </div>
+                {% else %}
+                    {% if backup_config.ok and is_editable %}
+                        <div class="well">
                             {#
                             {% button class="btn btn-primary" text=_"Create extra backup" action={backup} %}
                             {% button class="btn btn-default" text=_"Refresh list" action={refresh} %}
                             #}
-                        {% elseif not backup_config.ok %}
-                            <div class="alert alert-danger">
-                                <strong>{_ Warning: _}</strong> {_ Your backup is not correctly configured. The backup module will not work until the problem(s) below have been resolved: _}
-                                <ul>
-                                    {% if not backup_config.db_dump %}<li>{_ The "pg_dump" command was not found in the path. Set the "pg_dump" config key to the path to pg_dump and return to this page. _}</li>{% endif %}
-                                    {% if not backup_config.archive %}<li>{_ The "tar" command was not found in the path. Set the "tar" config key to the path to tar and return to this page. _}</li>{% endif %}
-                                    {% if not backup_config.tarsnap %}<li>{_ The "tarsnap" command was not found in the path. Set the "tarsnap" config key to the path to tarsnap and return to this page. _}</li>{% endif %}
-                                    {% if not backup_config.tarsnap_cfg %}<li>{_ Tarsnap is not configured properly. Make sure you have set "tarsnap.conf" or "~/.tarsnaprc" that defines "cachedir" and "keyfile", then return to this page. _}</li>{% endif %}
-                                </ul>
-                            </div>
-                        {% endif %}
-                    </div>
+                        </div>
+                    {% elseif not backup_config.ok %}
+                        <div class="alert alert-danger">
+                            <strong>{_ Warning: _}</strong> {_ Your backup is not correctly configured. The backup module will not work until the problem(s) below have been resolved: _}
+                            <ul>
+                                {% if not backup_config.db_dump %}<li>{_ The "pg_dump" command was not found in the path. Set the "pg_dump" config key to the path to pg_dump and return to this page. _}</li>{% endif %}
+                                {% if not backup_config.archive %}<li>{_ The "tar" command was not found in the path. Set the "tar" config key to the path to tar and return to this page. _}</li>{% endif %}
+                                {% if not backup_config.tarsnap %}<li>{_ The "tarsnap" command was not found in the path. Set the "tarsnap" config key to the path to tarsnap and return to this page. _}</li>{% endif %}
+                                {% if not backup_config.tarsnap_cfg %}<li>{_ Tarsnap is not configured properly. Make sure you have set "tarsnap.conf" or "~/.tarsnaprc" that defines "cachedir" and "keyfile", then return to this page. _}</li>{% endif %}
+                            </ul>
+                        </div>
+                    {% endif %}
                 {% endif %}
+                <p>
+                    {_ This page shows the list of automatically created archives. Read the <a href="https://github.com/ArthurClemens/mod_backup_tarsnap">module documentation</a> to change default settings. _}
+                </p>
             </div>
         </div>
     {% endwith %}
