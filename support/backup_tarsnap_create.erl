@@ -20,19 +20,16 @@ backup(Context) ->
 
 backup(Archives, Options, Context) ->
     Cfg = backup_tarsnap_service:check_configuration(Context),
-    case Cfg of
-        ok -> 
-            Identifier = backup_tarsnap_archive:identifier(Context),
-            ArchiveData = backup_tarsnap_archive:parse_archive_names(Archives, Identifier),
-            backup_tarsnap_cache:put(ArchiveData, Context),
+    case proplists:get_value(ok, Cfg) of
+        true ->
+            ArchiveData = backup_tarsnap_service:archive_data(Archives, Context),
             % handle jobs
-            lists:map(fun(Job) ->
+            lists:foreach(fun(Job) ->
                 JobArchives = [JobData || JobData <- ArchiveData, proplists:get_value(job, JobData) =:= Job],
                 maybe_backup_for_job(Job, JobArchives, Options, Context)
             end, backup_tarsnap_job:jobs());
-        Errors ->
-            Msg = string:join(Errors, ", "),
-            mod_backup_tarsnap:broadcast_error(Msg, Context)
+        false ->
+            mod_backup_tarsnap:debug("Tarsnap is not configured properly.")
     end.
 
 
@@ -43,8 +40,7 @@ maybe_backup_for_job(Job, JobArchives, Options, Context) when JobArchives =:= []
     case proplists:get_value(test, Options) of
         true ->
             mod_backup_tarsnap:debug(io_lib:format("A backup with name ~p will be created at path ~p", [Name, TmpDir])),
-            mod_backup_tarsnap:debug("Test ends here."),
-            undefined;
+            mod_backup_tarsnap:debug("Test ends here.");
         _ ->
             do_backup(Name, TmpDir, Job, Context)
     end;
@@ -97,7 +93,7 @@ do_backup(Name, TmpDir, Job, Context) ->
         _ -> 
             _Result = backup_tarsnap_service:store(Name, Path),
             z:info(io_lib:format("Completed backup ~s", [Job]), [{module, mod_backup_tarsnap}], Context),
-            file:delete(Path)
+            ok = file:delete(Path)
     end.
 
 

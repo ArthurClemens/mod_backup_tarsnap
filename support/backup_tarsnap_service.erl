@@ -12,74 +12,74 @@
 -export([
     check_configuration/1,
     archives/1,
+    archive_data/2,
     store/2,
     remove/1
 ]).
   
 check_configuration(Context) ->
-    Errors = lists:foldl(fun(Result, Acc) ->
-        case Result of
-            ok -> Acc;
-            _ ->
-                {error, Message} = Result,
-                [[Message]|Acc]
-        end
-    end, [], [
-        check_installed(archive_cmd()),
-        check_installed(db_dump_cmd()),
-        check_installed(tarsnap_cmd()),
-        is_tarsnap_configured(Context)
-    ]),
-    case Errors of
-        [] -> ok;
-        _ -> lists:concat(Errors)
-    end.
-    
+    Db = which(db_dump_cmd()),
+    Tar = which(archive_cmd()),
+    Tarsnap = which(tarsnap_cmd()),
+    TarsnapConfigured = check_configuration_tarsnap(Context),
+    [
+        {ok, Db and Tar and Tarsnap and TarsnapConfigured},
+        {db_dump, Db},
+        {archive, Tar},
+        {tarsnap, Tarsnap},
+        {tarsnap_cfg, TarsnapConfigured}
+    ].
 
-check_installed({Name, Cmd}) ->
-    case which(Cmd) of
-        [] -> {error, Name ++ " cannot be found"};
-        _ -> ok
-    end.
 
 archive_cmd() ->
-    {"tar", z_convert:to_list(z_config:get(tar, "tar"))}.
+    z_convert:to_list(z_config:get(tar, "tar")).
 
 db_dump_cmd() ->
-    {"pg_dump", z_convert:to_list(z_config:get(pg_dump, "pg_dump"))}.
+    z_convert:to_list(z_config:get(pg_dump, "pg_dump")).
     
 tarsnap_cmd() ->
-    {"tarsnap", z_convert:to_list(z_config:get(tarsnap, "tarsnap"))}.
+    z_convert:to_list(z_config:get(tarsnap, "tarsnap")).
 
 which(Cmd) ->
     filelib:is_regular(z_string:trim_right(os:cmd("which " ++ z_utils:os_escape(Cmd)))).
      
 
-%% If tarsnap is not configured properly, tarsnap will return a message complaining about a missing keyfile.
-is_tarsnap_configured(Context) ->
+%% If tarsnap is configured properly, tarsnap will return a message containing the table with All archives.
+check_configuration_tarsnap(Context) ->
     ProcessingDir = z_path:files_subdir_ensure("processing", Context),
     Cmd = "tarsnap -c -f test --dry-run " ++ ProcessingDir,
     Result = os:cmd(Cmd),
     case re:run(Result, "All archives") of 
         {match, _Match} -> 
-            ok;
+            true;
         _ -> 
-            {error, Result}
+            false
     end.
-    
-%% Returns a list of archives
+
+   
+%% Returns a list of archive names
 archives(Context) ->
-    case check_configuration(Context) of
-        ok -> 
+    Cfg = backup_tarsnap_service:check_configuration(Context),
+    case proplists:get_value(ok, Cfg) of
+        true ->
             Cmd = "tarsnap --list-archives",
             Result = os:cmd(Cmd),
             string:tokens(Result, "\n");
-        _ -> 
+        false -> 
             ?zWarning("Tarsnap not installed or configured", Context),
             []
     end.
 
+
+%% Takes a list of archive names and returns the parsed data.
+archive_data(Archives, Context) ->
+    Identifier = backup_tarsnap_archive:identifier(Context),
+    ArchiveData = backup_tarsnap_archive:parse_archive_names(Archives, Identifier),
+    backup_tarsnap_cache:put(ArchiveData, Context),
+    ArchiveData.
+
  
+%% Store file as named archive.
 store(Name, Path) ->
     % options:
     % -c: Create an archive containing the specified items and name.
@@ -89,6 +89,7 @@ store(Name, Path) ->
     os:cmd(TarsnapCmd).
 
 
+%% Remove archive.
 remove(Name) ->
     % options:
     % -d: Delete the specified archive

@@ -20,19 +20,16 @@ delete(Context) ->
     
 delete(Archives, Options, Context) ->
     Cfg = backup_tarsnap_service:check_configuration(Context),
-    case Cfg of
-        ok -> 
-            Identifier = backup_tarsnap_archive:identifier(Context),
-            ArchiveData = backup_tarsnap_archive:parse_archive_names(Archives, Identifier),
-            backup_tarsnap_cache:put(ArchiveData, Context),
+    case proplists:get_value(ok, Cfg) of
+        true ->
+            ArchiveData = backup_tarsnap_service:archive_data(Archives, Context),
             % handle jobs
-            lists:map(fun(Job) ->
+            lists:foreach(fun(Job) ->
                 JobArchives = [JobData || JobData <- ArchiveData, proplists:get_value(job, JobData) =:= Job],
                 maybe_delete_for_job(Job, JobArchives, Options, Context)
             end, backup_tarsnap_job:jobs());
-        Errors ->
-            Msg = string:join(Errors, ", "),
-            mod_backup_tarsnap:broadcast_error(Msg, Context)
+        false ->
+            mod_backup_tarsnap:debug("Tarsnap is not configured properly.")
     end.
     
 
