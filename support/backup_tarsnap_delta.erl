@@ -1,6 +1,5 @@
 %% @author Arthur Clemens
 %% @copyright 2014 Arthur Clemens
-%% Generated on 2014-10-31
 %% @doc Delta time spans
 
 -module(backup_tarsnap_delta).
@@ -43,8 +42,9 @@ delta_strings_to_seconds(DeltaString) ->
         case re:run(Delta, Pattern, [global,{capture,all,list}]) of 
             {match, [[_Match, CountStr]]} -> 
                 Duration = list_to_integer(CountStr),
-                case Duration < 120 of
-                    true -> 120;
+                MinimumDuration = 10 * 60,
+                case Duration < MinimumDuration of
+                    true -> MinimumDuration;
                     false -> Duration
                 end;
             {match, [[_Match, CountStr, Type]]} -> 
