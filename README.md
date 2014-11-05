@@ -105,6 +105,7 @@ As root:
 
     $sudo chown -R zotonic:zotonic /home/zotonic/.tarsnap/
 
+
 ### Install
 
 Zotonic >= 0.10::
@@ -122,3 +123,8 @@ Zotonic <= 0.6::
 ### Activate
 
 Activate this module in Admin > System > Modules. 
+
+
+## Known problems
+
+* Tarsnap with multiple sites may raise errors sometimes because of concurrency problems: "You can't run two {create, delete} operations at the same time using the same cache directory". This will be fixed.
