@@ -1,9 +1,12 @@
 # Zotonic module to create backups with Tarsnap
 
-* Manages a grandfather-father-child backup scheme
-* Uses configurable backup schema, for example "6h 1d 1w 1m 1y"
-* Creates separate backups for database and files, optionally with different backup schemas
-* Automatically removes expired archives
+Stores backups at the online backup service Tarsnap ("Online backups for the truly paranoid"). Because backups stored on your own webserver are not really that safe.
+
+* Automatically creates backups and stores them - outside of your own server - with Tarsnap.
+* Manages a grandfather-father-child backup scheme.
+* Uses configurable backup schema, for example "6h 1d 1w 1m 1y".
+* Creates separate backups for database and files, optionally with different backup schemas.
+* Automatically removes expired archives.
 
 Inspired by [Tarsnapper](https://github.com/miracle2k/tarsnapper).
 
@@ -11,47 +14,48 @@ Inspired by [Tarsnapper](https://github.com/miracle2k/tarsnapper).
 ## Archive creation
 
 * Backup names follow the scheme: identifier-job-date-time. For example: `mysite-database-20141231-065959`.
-* The backup name does not contain information about the cycle it belongs to;  the date in the name is used to infer that information. The date is 'universal time', written as `dddddd-tttttt`.
+* The backup name does not contain information about the cycle it belongs to (f.i. "WEEKLY");  the date in the name is used to infer that information. The date is 'universal time', written as `dddddd-tttttt`.
 * Jobs for Zotonic backups are: `database` and `files`.
-* A new backup is created as soon as the most recent backup is older than the first delta range.
+* A new backup is created as soon as the most recent backup is older than the first interval.
 * Backups will not be skipped if you activate the module later in the day: when it detects that the most recent backup is older, a new backup is created.
-* Delta ranges can be changed at any time.
+* Interval settings can be changed at any time.
 
 
-## Schema
+## Intervals
 
-* Schema cycles are defined by freeform time delta ranges, default: "1d 1w 1m 1y".
-* Each cycle ends at the next delta range; the first cycle runs from 1 day to 1 week old; the second from 1 week to 1 month.
+* The backup schema is defined by freeform time interval ranges (default: "1d 1w 1m 1y").
+* Each interval value defines a cycle that ends at the next interval; the first cycle runs from 1 day to 1 week old; the second from 1 week to 1 month.
 * The default values will maintain 7 daily backups, 4 weekly backups, 12 montly backups, and after that one backup for each year.
-* You can use  both `120` and `2h` for 2 hours; `3d` for 3 days; `6m` for six months; and so on. The minimum delta is 10 minutes to reduce the load on the server and to prevent overlapping tasks.
-* The smallest delta range defines when new backups should be created: as soon as the most recent backup is older than this value (default: 1 day).
+* You can use  both `120` and `2h` for 2 hours; `3d` for 3 days; `6m` for six months; and so on. The minimum interval is `10` (minutes) to reduce the load on the server and to prevent overlapping backup tasks.
+* The smallest interval defines when new backups should be created: as soon as the most recent backup is older than this value (default: 1 day).
 
 
 ## Archive expiration
 
-* The archive names do not include any cycle information. Instead, the date in the archive name is used to infer expiration dates. 
-* Calculation starts at the highest delta range (default 1 year). The archive that is closest to that date (the current date minus the delta) is marked as "to keep". Proximity is calculated with a range of plus/minus half a delta (in the example plus or minus half a year).
-  * If older archives exist, the next delta is used (the current date minus 2 deltas) until no older archives are found.
-  * Archives older than that first delta range that are not marked as "to keep" are marked as "to expire".
-* This mechanism moves up the delta ranges until all have been passed.
+* The date in the archive name is used to infer expiration dates. 
+* Calculation starts at the longest interval value (default 1 year). The archive that is closest to that date (the current date minus the interval) is marked as "to keep". Proximity is calculated with a range of plus/minus half an interval (in the example plus or minus half a year).
+  * If older archives exist, we go further back in time (the interval value); this process continues until no older archives are found.
+  * Archives older than that first interval value that are not marked as "to keep" are marked as "to expire".
+* Then the second longest interval is used, until all intervals have been processed.
 * The most recent archive is always kept.
 
 
 ## Configuration
 
-### Deltas
+### Intervals
 
-* The delta range is set with config key `deltas` for module `mod_backup_tarsnap`
-* If not set, the default value will be used: `1d 1w 1m 1y`
-* Deltas can be set for the module, or further specified for each job: `deltas_files` and `deltas_database`
+* The interval range is set with config key `interval` for module `mod_backup_tarsnap`.
+* If not set, the default value will be used: `1d 1w 1m 1y`.
+* Intervals are default set for all jobs, or can be further specified for each job: `interval_files` and `interval_database`.
 
 These are the default values in /admin/config:
 
 | Module | Key | Default value |
 |--------|-----|-------|
-| mod_backup_tarsnap | deltas          | 1d 1w 1m 1y  |
-| mod_backup_tarsnap | deltas_files    | 1d 1w 1m 1y  |
-| mod_backup_tarsnap | deltas_database | 1d 1w 1m 1y  |
+| mod_backup_tarsnap | interval          | 1d 1w 1m 1y  |
+| mod_backup_tarsnap | interval_files    | 1d 1w 1m 1y  |
+| mod_backup_tarsnap | interval_database | 1d 1w 1m 1y  |
+
 
 ### Archive identifier
 

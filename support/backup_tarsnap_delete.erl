@@ -50,20 +50,20 @@ maybe_delete_for_job(Job, JobArchives, Options, Context) ->
     Now = proplists:get_value(date, Options, calendar:universal_time()),
     NowSeconds = calendar:datetime_to_gregorian_seconds(Now),
     
-    % reverse sort deltas
-    % and remove the first delta
+    % reverse sort intervals
+    % and remove the first interval
     % start with last cycle
-    Deltas = lists:reverse(lists:sort(backup_tarsnap_delta:deltas(Job, Context))),
+    Intervals = lists:reverse(lists:sort(backup_tarsnap_interval:intervals(Job, Context))),
     
-    {ToKeep, _} = lists:foldl(fun(Delta, {ToKeep, WorkingArchives}) ->
-        TargetTime = NowSeconds - Delta,
+    {ToKeep, _} = lists:foldl(fun(Interval, {ToKeep, WorkingArchives}) ->
+        TargetTime = NowSeconds - Interval,
         %% trim down possible candidates by looking at a smaller time window
-        Candidates = prune_archives(TargetTime, Delta, WorkingArchives),
+        Candidates = prune_archives(TargetTime, Interval, WorkingArchives),
         % Number of existing steps in this cycle
-        StepCount = get_step_count(TargetTime, Delta, Candidates),
+        StepCount = get_step_count(TargetTime, Interval, Candidates),
         RawStepArchives = lists:foldl(fun(Step, Acc1) ->
-            GroupTargetTime = TargetTime - (Step * Delta),
-            case find_closest_backup_in_range(GroupTargetTime, Delta, Candidates) of 
+            GroupTargetTime = TargetTime - (Step * Interval),
+            case find_closest_backup_in_range(GroupTargetTime, Interval, Candidates) of 
                 undefined -> Acc1;
                 Closest -> [Closest|Acc1]
             end
@@ -79,7 +79,7 @@ maybe_delete_for_job(Job, JobArchives, Options, Context) ->
                 {StepArchives, Cleaned}
         end,            
         {ToAdd ++ ToKeep, CleanedWorking}
-    end, {[lists:nth(1, IndexedArchives)], IndexedArchives}, Deltas),
+    end, {[lists:nth(1, IndexedArchives)], IndexedArchives}, Intervals),
     UniqueToKeep = lists:usort(ToKeep),
     ToRemove = IndexedArchives -- UniqueToKeep,
     case length(ToRemove) of
@@ -122,9 +122,9 @@ index_archives(Archives) ->
     lists:reverse(lists:sort(fun sort_by_date/2, Indexed)).
     
 
-prune_archives(Time, Delta, Archives) ->
-    % include archives that are half a delta younger, plus all older
-    Youngest = Time + Delta/2,
+prune_archives(Time, Interval, Archives) ->
+    % include archives that are half a interval younger, plus all older
+    Youngest = Time + Interval/2,
     lists:filter(fun(Archive) ->
         Date = proplists:get_value(date, Archive),
         DateSeconds = calendar:datetime_to_gregorian_seconds(Date),
@@ -132,25 +132,25 @@ prune_archives(Time, Delta, Archives) ->
     end, Archives).
     
 
-get_step_count(_Time, _Delta, Archives) when length(Archives) =:= 0 ->
+get_step_count(_Time, _Interval, Archives) when length(Archives) =:= 0 ->
     0;
-get_step_count(Time, Delta, Archives) ->
+get_step_count(Time, Interval, Archives) ->
     SortedArchives = lists:sort(fun sort_by_date/2, Archives),
     OldestArchive = lists:nth(1, SortedArchives),
     OldestDate = proplists:get_value(date, OldestArchive),
     OldestSeconds = calendar:datetime_to_gregorian_seconds(OldestDate),
-    StartTime = Time + Delta/2,
-    ceiling((StartTime - OldestSeconds) / Delta).
+    StartTime = Time + Interval/2,
+    ceiling((StartTime - OldestSeconds) / Interval).
 
 
 %% Find the closest matching date for given date.
-%% Search in the range: Date +- Delta/2 
-find_closest_backup_in_range(Date, Delta, Archives) ->
+%% Search in the range: Date +- Interval/2 
+find_closest_backup_in_range(Date, Interval, Archives) ->
     Diffed = lists:foldl(fun(Archive, Acc) ->
         ArchiveDate = proplists:get_value(date, Archive),
         ArchiveDateSeconds = calendar:datetime_to_gregorian_seconds(ArchiveDate),
         Diff = abs(Date - ArchiveDateSeconds),
-        case Diff > Delta/2 of
+        case Diff > Interval/2 of
             true -> Acc;
             false -> 
                 Archive1 = [{diff, Diff}|Archive],

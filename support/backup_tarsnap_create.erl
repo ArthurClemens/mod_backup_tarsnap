@@ -49,16 +49,16 @@ maybe_backup_for_job(Job, JobArchives, Options, Context) ->
     Sorted = lists:reverse(lists:sort(JobArchives)),
     [NewestArchive|_Rest] = Sorted,
     
-    % take the smallest delta
-    DeltaSeconds = backup_tarsnap_delta:smallest(Job, Context),
+    % take the smallest interval
+    IntervalSeconds = backup_tarsnap_interval:smallest(Job, Context),
     NowSeconds = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
     NewestArchiveSeconds = backup_tarsnap_archive:date_seconds(NewestArchive),    
-    NextBackupSeconds = NewestArchiveSeconds + DeltaSeconds,
-    Diff = NewestArchiveSeconds + DeltaSeconds - NowSeconds,
+    NextBackupSeconds = NewestArchiveSeconds + IntervalSeconds,
+    Diff = NewestArchiveSeconds + IntervalSeconds - NowSeconds,
     
     case (NextBackupSeconds < NowSeconds) of 
         true ->        
-            mod_backup_tarsnap:debug(io_lib:format("The smallest delta is set to ~.2f hours. The most recent archive ~p is ~.2f hours older. A new archive is needed.", [DeltaSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)])),
+            mod_backup_tarsnap:debug(io_lib:format("The smallest interval is set to ~.2f hours. The most recent archive ~p is ~.2f hours older. A new archive is needed.", [IntervalSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)])),
             {Name, TmpDir} = prepare_backup(Job, Context),
             case proplists:get_value(test, Options) of
                 true ->
@@ -68,7 +68,7 @@ maybe_backup_for_job(Job, JobArchives, Options, Context) ->
                     do_backup(Name, TmpDir, Job, Context)
             end;
         false ->
-            mod_backup_tarsnap:debug(io_lib:format("The smallest delta is set to ~.2f hours. The most recent archive ~p is ~.2f hours younger. No archive is needed.", [DeltaSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)])),
+            mod_backup_tarsnap:debug(io_lib:format("The smallest interval is set to ~.2f hours. The most recent archive ~p is ~.2f hours younger. No archive is needed.", [IntervalSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)])),
             case proplists:get_value(test, Options) of
                 true ->
                     mod_backup_tarsnap:debug("Test ends here.");

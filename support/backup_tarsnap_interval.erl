@@ -1,45 +1,45 @@
 %% @author Arthur Clemens
 %% @copyright 2014 Arthur Clemens
-%% @doc Delta time spans
+%% @doc Interval time spans
 
--module(backup_tarsnap_delta).
+-module(backup_tarsnap_interval).
 -author("Arthur Clemens").
 
 -include_lib("zotonic.hrl").
 
 -export([
     smallest/2,
-    deltas/2
+    intervals/2
 ]).
 
 -define(DEFAULT_DELTA_LIST, <<"1d 1w 1m 1y">>).
 
 smallest(Job, Context) ->
-    lists:nth(1, lists:sort(deltas(Job, Context))).
+    lists:nth(1, lists:sort(intervals(Job, Context))).
 
 
-deltas(Job, Context) ->
-    DeltaString = case m_config:get_value(
+intervals(Job, Context) ->
+    IntervalString = case m_config:get_value(
         mod_backup_tarsnap,
-        list_to_atom(atom_to_list(deltas) ++ "_" ++ Job), 
+        list_to_atom(atom_to_list(interval) ++ "_" ++ Job), 
         m_config:get_value(
             mod_backup_tarsnap,
-            deltas,
+            interval,
             ?DEFAULT_DELTA_LIST,
             Context
         ),
         Context) of
             <<>> -> ?DEFAULT_DELTA_LIST;
-            Deltas -> Deltas
+            Intervals -> Intervals
     end,
-    delta_strings_to_seconds(binary_to_list(DeltaString)).
+    delta_strings_to_seconds(binary_to_list(IntervalString)).
 
 
-delta_strings_to_seconds(DeltaString) ->
-    DeltaTokens = string:tokens(DeltaString, " "),
+delta_strings_to_seconds(IntervalString) ->
+    IntervalTokens = string:tokens(IntervalString, " "),
     Pattern = "(\\d+)(h|d|w|m|y)*",
-    lists:map(fun(Delta) ->
-        case re:run(Delta, Pattern, [global,{capture,all,list}]) of 
+    lists:map(fun(Interval) ->
+        case re:run(Interval, Pattern, [global,{capture,all,list}]) of 
             {match, [[_Match, CountStr]]} -> 
                 Duration = list_to_integer(CountStr),
                 MinimumDuration = 10 * 60,
@@ -59,5 +59,5 @@ delta_strings_to_seconds(DeltaString) ->
                 end;
             _ -> undefined
         end
-    end, DeltaTokens).
+    end, IntervalTokens).
 
