@@ -120,6 +120,18 @@ Zotonic <= 0.6::
 
     git clone https://github.com/ArthurClemens/mod_bulk_commands.git mod_bulk_commands
 
+### Install dependencies (qdate for Zotonic 0.10)
+
+[qdate](https://github.com/choptastic/qdate) is installed with Zotonic 0.11 and 0.12, but for older installations of Zotonic it must be installed separately.
+
+You many need to install `rebar` first if it isn't installed yet. 
+
+Then in the module directory:
+
+    rebar get-deps
+    rebar compile
+
+
 ### Activate
 
 Activate this module in Admin > System > Modules. 
