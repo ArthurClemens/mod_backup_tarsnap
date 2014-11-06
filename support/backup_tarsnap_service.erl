@@ -48,11 +48,17 @@ check_configuration_tarsnap(Context) ->
     ProcessingDir = z_path:files_subdir_ensure("processing", Context),
     Cmd = "tarsnap -c -f test --dry-run " ++ ProcessingDir,
     Result = os:cmd(Cmd),
-    case re:run(Result, "(All archives)|(Transaction already in progress)") of 
-        {match, _Match} -> 
+    case Result of 
+        [] ->
+            % sometimes tarsnap does not return a string
             true;
         _ -> 
-            false
+            case re:run(Result, "(All archives)|(Transaction already in progress)") of 
+                {match, _Match} -> 
+                    true;
+                _ -> 
+                    false
+            end
     end.
 
    
