@@ -46,19 +46,13 @@ which(Cmd) ->
 %% If tarsnap is configured properly, tarsnap will return a message containing the table with All archives.
 check_configuration_tarsnap(Context) ->
     ProcessingDir = z_path:files_subdir_ensure("processing", Context),
-    Cmd = "tarsnap -c -f test --dry-run " ++ ProcessingDir,
+    Cmd = "tarsnap -v -c -f test --dry-run " ++ ProcessingDir,
     Result = os:cmd(Cmd),
-    case Result of 
-        [] ->
-            % sometimes tarsnap does not return a string
+    case re:run(Result, "(All archives)|(Transaction already in progress)") of 
+        {match, _Match} -> 
             true;
         _ -> 
-            case re:run(Result, "(All archives)|(Transaction already in progress)") of 
-                {match, _Match} -> 
-                    true;
-                _ -> 
-                    false
-            end
+            false
     end.
 
    
