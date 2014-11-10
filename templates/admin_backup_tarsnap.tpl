@@ -5,7 +5,7 @@
 {% block content %}
     {% with m.acl.is_admin as is_editable %}
         <div class="admin-header">
-            <h2>{_ Tarsnap Backup _}</h2> 
+            <h2>{_ Backup with Tarsnap _}</h2> 
             <p>
                 {_ Manage backups of database and files to the Tarsnap online backup service. _}
             </p>

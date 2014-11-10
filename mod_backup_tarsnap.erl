@@ -49,7 +49,7 @@ observe_admin_menu(admin_menu, Acc, Context) ->
     [
      #menu_item{id=yaml_import,
                 parent=admin_modules,
-                label=?__("Backup (Tarsnap)", Context),
+                label=?__("Backup with Tarsnap", Context),
                 url={admin_backup_tarsnap},
                 visiblecheck={acl, use, admin_backup_tarsnap}}
      |Acc].
