@@ -1,12 +1,12 @@
 %% @author Arthur Clemens
 %% @copyright 2014 Arthur Clemens
-%% @doc Tarsnap backup
+%% @doc Backup with Tarsnap
 
 -module(mod_backup_tarsnap).
 -author("Arthur Clemens").
 -behaviour(gen_server).
 
--mod_title("Tarsnap backup").
+-mod_title("Backup with Tarsnap").
 -mod_description("Manage backups of database and files to the Tarsnap online backup service.").
 -mod_prio(600).
 
