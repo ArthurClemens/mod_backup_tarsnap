@@ -10,6 +10,7 @@
 
 -export([
     check_configuration/1,
+    cleanup_before_backup/0,
     archives/1,
     archive_data/2,
     store/2,
@@ -28,32 +29,11 @@ check_configuration(Context) ->
         {tarsnap, Tarsnap},
         {tarsnap_cfg, TarsnapConfigured}
     ].
-
-
-archive_cmd() ->
-    z_convert:to_list(z_config:get(tar, "tar")).
-
-db_dump_cmd() ->
-    z_convert:to_list(z_config:get(pg_dump, "pg_dump")).
-    
-tarsnap_cmd() ->
-    z_convert:to_list(z_config:get(tarsnap, "tarsnap")).
-
-which(Cmd) ->
-    filelib:is_regular(z_string:trim_right(os:cmd("which " ++ z_utils:os_escape(Cmd)))).
      
 
-%% If tarsnap is configured properly, tarsnap will return a message containing the table with All archives.
-check_configuration_tarsnap(Context) ->
-    ProcessingDir = z_path:files_subdir_ensure("processing", Context),
-    Cmd = "tarsnap -v -c -f test --dry-run " ++ ProcessingDir,
-    Result = os:cmd(Cmd),
-    case re:run(Result, "(Removing leading)|(\\na [a-z0-9]+)|(All archives)|(Transaction already in progress)") of 
-        {match, _Match} -> 
-            true;
-        _ -> 
-            false
-    end.
+cleanup_before_backup() ->
+    Cmd = "tarsnap --fsck",
+    os:cmd(Cmd).
 
    
 %% Returns a list of archive names
@@ -95,4 +75,29 @@ remove(Name) ->
     % -f: Archive name
     TarsnapCmd = "tarsnap -d -f " ++ Name,
     os:cmd(TarsnapCmd).
+ 
+
+%% If tarsnap is configured properly, tarsnap will return a message containing the table with All archives.
+check_configuration_tarsnap(Context) ->
+    ProcessingDir = z_path:files_subdir_ensure("processing", Context),
+    Cmd = "tarsnap -v -c -f test --dry-run " ++ ProcessingDir,
+    Result = os:cmd(Cmd),
+    case re:run(Result, "(Removing leading)|(\\na [a-z0-9]+)|(All archives)|(Transaction already in progress)") of 
+        {match, _Match} -> 
+            true;
+        _ -> 
+            false
+    end.
+
+
+archive_cmd() ->
+    z_convert:to_list(z_config:get(tar, "tar")).
+
+db_dump_cmd() ->
+    z_convert:to_list(z_config:get(pg_dump, "pg_dump")).
     
+tarsnap_cmd() ->
+    z_convert:to_list(z_config:get(tarsnap, "tarsnap")).
+
+which(Cmd) ->
+    filelib:is_regular(z_string:trim_right(os:cmd("which " ++ z_utils:os_escape(Cmd)))).

@@ -19,6 +19,7 @@ backup(Context) ->
 
 backup(Archives, Options, Context) ->
     Cfg = backup_tarsnap_service:check_configuration(Context),
+    backup_tarsnap_service:cleanup_before_backup(),
     case proplists:get_value(ok, Cfg) of
         true ->
             ArchiveData = backup_tarsnap_service:archive_data(Archives, Context),
