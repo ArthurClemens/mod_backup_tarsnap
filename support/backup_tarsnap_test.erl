@@ -101,15 +101,15 @@ days_back(DayCount) ->
     end, lists:seq(0, DayCount)).
 
 
--spec months_back(MonthCount) -> list(non_neg_integer()) when
-    MonthCount:: non_neg_integer().
-months_back(MonthCount) ->
-    Now = now_seconds(),
-    lists:map(fun(D) -> 
-        RandomRange = ?DAY_SECONDS * 30 / 0.8,
-        Random = RandomRange - random:uniform(round(2 * RandomRange)),
-        format_date(round(Now - (D * 30.3 * ?DAY_SECONDS) + Random))
-    end, lists:seq(0, MonthCount)).
+%-spec months_back(MonthCount) -> list(non_neg_integer()) when
+%    MonthCount:: non_neg_integer().
+%months_back(MonthCount) ->
+%    Now = now_seconds(),
+%    lists:map(fun(D) -> 
+%        RandomRange = ?DAY_SECONDS * 30 / 0.8,
+%        Random = RandomRange - random:uniform(round(2 * RandomRange)),
+%        format_date(round(Now - (D * 30.3 * ?DAY_SECONDS) + Random))
+%    end, lists:seq(0, MonthCount)).
 
 
 -spec now_seconds() -> integer().
