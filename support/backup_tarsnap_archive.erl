@@ -15,6 +15,9 @@
     archive_names/1
 ]).
 
+
+-spec identifier(Context) -> string() when
+    Context:: #context{}.
 %% Use z_context:site or optionally config 'identifier'.
 identifier(Context) ->
     Identifier = m_config:get_value(
@@ -29,22 +32,23 @@ identifier(Context) ->
     end.
 
 
+-spec name(JobName, Context) -> string() when
+    JobName:: string(),
+    Context:: #context{}.
 %% Uses the same filename structure as mod_backup: id-dddddd-tttttt
 %% Takes the identifier and appends the current date-time.
-%% name(string(), Context) -> string()
 name(JobName, Context) ->
-    Identifier = identifier(Context),
-    name(Identifier, JobName, Context).
-
-%% name(string(), string(), Context) -> string()
-name(Identifier, JobName, _Context) ->
-    Identifier
+    DateStr = qdate:to_string("Ymd-His", calendar:universal_time()),
+    identifier(Context)
         ++ "-"
         ++ JobName
         ++ "-"
-        ++ qdate:to_string("Ymd-His", calendar:universal_time()).
+        ++ DateStr.
 
 
+-spec parse_archive_names(Archives, Identifier) -> list(string()) when
+    Archives:: list(),
+    Identifier:: string().
 parse_archive_names(Archives, Identifier) ->
     lists:reverse(lists:foldl(fun(Archive, Acc) ->
         Data = parse_archive_parts(Identifier, Archive),
@@ -56,12 +60,17 @@ parse_archive_names(Archives, Identifier) ->
     end, [], Archives)).
 
 
+-spec date_seconds(ArchiveData) -> integer() when
+    ArchiveData:: list().
 %% Returns the number of seconds of the archive date.
 date_seconds(ArchiveData) ->
     Date = proplists:get_value(date, ArchiveData),
     calendar:datetime_to_gregorian_seconds(Date).
 
 
+-spec parse_archive_parts(Identifier, Archive) -> list() when
+    Identifier:: string(),
+    Archive:: string().
 %% parses the date and extension from an archive name
 %% parses the date from the date string
 %% and returns a proplist with keys: date, extension
@@ -92,7 +101,10 @@ parse_archive_parts(Identifier, Archive) ->
         _ -> 
             []
     end.
-    
+
+
+-spec archive_names(Archives) -> list() when
+    Archives:: list().
 archive_names(Archives) ->
     lists:map(fun(Archive) ->
         proplists:get_value(archive, Archive)

@@ -12,17 +12,32 @@
     backup/3
 ]).
 
+
+-spec backup(Context) -> any() when
+    Context:: #context{}.
 backup(Context) ->
     Archives = backup_tarsnap_service:archives(Context),
     backup(Archives, [], Context).
 
 
+-spec backup(Archives, Options, Context) -> any() when
+    Archives:: list(),
+    Options:: list({test, boolean()} | []),
+    Context:: #context{}.
 backup(Archives, Options, Context) ->
-    Cfg = backup_tarsnap_service:check_configuration(Context),
-    backup_tarsnap_service:cleanup_before_backup(),
-    case proplists:get_value(ok, Cfg) of
+    ConfigOk = case proplists:get_value(test, Options, false) of
+        true -> true;
+        false -> 
+            Cfg = backup_tarsnap_service:check_configuration(Context),
+            backup_tarsnap_service:cleanup_before_backup(),
+            proplists:get_value(ok, Cfg)
+    end,
+    lager:info("backup, Archives=~p", [Archives]),
+    lager:info("ConfigOk=~p", [ConfigOk]),
+    case ConfigOk of
         true ->
             ArchiveData = backup_tarsnap_service:archive_data(Archives, Context),
+            lager:info("ArchiveData=~p", [ArchiveData]),
             % handle jobs
             lists:foreach(fun(Job) ->
                 JobArchives = [JobData || JobData <- ArchiveData, proplists:get_value(job, JobData) =:= Job],
@@ -33,15 +48,20 @@ backup(Archives, Options, Context) ->
     end.
 
 
+-spec maybe_backup_for_job(Job, JobArchives, Options, Context) -> any() when
+    Job:: string(),
+    JobArchives:: list(),
+    Options:: list({test, boolean()} | []),
+    Context:: #context{}.
 maybe_backup_for_job(Job, JobArchives, Options, Context) when JobArchives =:= []->
     mod_backup_tarsnap:debug(io_lib:format("Assess backup job '~s'...", [Job]), Context),
     mod_backup_tarsnap:debug("No archives found. A new archive will be created.", Context),
     {Name, TmpDir} = prepare_backup(Job, Context),
-    case proplists:get_value(test, Options) of
+    case proplists:get_value(test, Options, false) of
         true ->
             mod_backup_tarsnap:debug(io_lib:format("An archive with name ~p will be created at path ~p", [Name, TmpDir]), Context),
             mod_backup_tarsnap:debug("Test ends here.", Context);
-        _ ->
+        false ->
             do_backup(Name, TmpDir, Job, Context)
     end;
 
@@ -61,30 +81,38 @@ maybe_backup_for_job(Job, JobArchives, Options, Context) ->
         true ->        
             mod_backup_tarsnap:debug(io_lib:format("The smallest interval is set to ~.2f hours. The most recent archive ~p is ~.2f hours older. A new backup is needed.", [IntervalSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)]), Context),
             {Name, TmpDir} = prepare_backup(Job, Context),
-            case proplists:get_value(test, Options) of
+            case proplists:get_value(test, Options, false) of
                 true ->
                     mod_backup_tarsnap:debug(io_lib:format("A archive with name ~p will be created at path ~p", [Name, TmpDir]), Context),
                     mod_backup_tarsnap:debug("Test ends here.", Context);
-                _ ->
+                false ->
                     do_backup(Name, TmpDir, Job, Context)
             end;
         false ->
             mod_backup_tarsnap:debug(io_lib:format("The smallest interval is set to ~.2f hours. The most recent archive ~p is ~.2f hours younger. No new backup is needed.", [IntervalSeconds/3600, proplists:get_value(archive, NewestArchive), abs(Diff/3600)]), Context),
-            case proplists:get_value(test, Options) of
+            case proplists:get_value(test, Options, false) of
                 true ->
                     mod_backup_tarsnap:debug("Test ends here.", Context);
-                _ ->
+                false ->
                     undefined
             end
     end.
 
-  
+
+-spec prepare_backup(Job, Context) -> {string(), string()} when
+    Job:: string(),
+    Context:: #context{}.
 prepare_backup(Job, Context) ->
     Name = backup_tarsnap_archive:name(Job, Context),
     TmpDir = z_path:files_subdir_ensure("processing", Context),
     {Name, TmpDir}.
 
 
+-spec do_backup(Name, TmpDir, Job, Context) -> any() when
+    Name:: string(),
+    TmpDir:: string(),
+    Job:: string(),
+    Context:: #context{}.
 do_backup(Name, TmpDir, Job, Context) ->
     Path = create_archive(Name, TmpDir, Job, Context),
     case Path of
@@ -97,6 +125,11 @@ do_backup(Name, TmpDir, Job, Context) ->
     end.
 
 
+-spec create_archive(Name, TmpDir, Job, Context) -> list() | 'undefined' when
+    Name:: string(),
+    TmpDir:: string(),
+    Job:: string(),
+    Context:: #context{}.
 create_archive(Name, TmpDir, Job, Context) when Job =:= "database" ->
     backup_tarsnap_create_archive_database:create(Name, TmpDir, Context);
 create_archive(Name, TmpDir, Job, Context) when Job =:= "files" ->

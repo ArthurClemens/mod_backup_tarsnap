@@ -14,7 +14,7 @@ render_action(TriggerId, TargetId, _Args, Context) ->
 event(#postback{message=backup}, Context) ->
     case z_acl:is_allowed(use, mod_backup_tarsnap, Context) of
         true ->
-            case mod_backup_tarsnap:backup(Context) of
+            case mod_backup_tarsnap:start_backup(Context) of
                 ok ->
         	        z_render:growl("Started the backup. You can keep this page open or continue working.", Context);
         	    {error, in_progress} ->

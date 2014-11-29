@@ -14,6 +14,7 @@
 -include_lib("modules/mod_admin/include/admin_menu.hrl").
 
 -export([
+    start_backup/1,
     refresh/1,
     list_archives/1,
     check_configuration/1,
@@ -55,6 +56,8 @@ observe_admin_menu(admin_menu, Acc, Context) ->
      |Acc].
 
  
+-spec refresh(Context) -> {atom(), list()} when
+    Context:: #context{}.
 refresh(Context) ->
     Archives = backup_tarsnap_service:archives(Context),
     Cfg = backup_tarsnap_service:check_configuration(Context),
@@ -67,10 +70,14 @@ refresh(Context) ->
     end.
 
 
+-spec list_archives(Context) -> list() when
+    Context:: #context{}.
 list_archives(Context) ->
     backup_tarsnap_cache:get(Context).
 
 
+-spec check_configuration(Context) -> list() when
+    Context:: #context{}.
 check_configuration(Context) ->
     case backup_in_progress(Context) of
         true -> 
@@ -84,6 +91,15 @@ check_configuration(Context) ->
     end.
 
 
+-spec start_backup(Context) -> any() when
+    Context:: #context{}.
+%% @doc Start a backup
+start_backup(Context) ->
+    gen_server:call(z_utils:name_for_host(?MODULE, z_context:site(Context)), start_backup).
+
+
+-spec backup_in_progress(Context) -> boolean() when
+    Context:: #context{}.
 backup_in_progress(Context) ->
     case gen_server:call(z_utils:name_for_host(?MODULE, z_context:site(Context)), in_progress_start) of
         undefined -> false;
@@ -96,12 +112,14 @@ broadcast_error(Result, Context) ->
 
 
 debug(Msg, Context) ->
+%    lager:info("debug: ~s", [Msg]),
     case z_convert:to_bool(m_config:get_value(
         mod_backup_tarsnap,
         debug,
         Context
     )) of
-        true -> lager:info(Msg);
+        true ->
+            z:debug(Msg, Context);
         _ -> undefined
     end.
 

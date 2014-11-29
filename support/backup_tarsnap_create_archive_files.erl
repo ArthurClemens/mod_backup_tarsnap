@@ -11,6 +11,10 @@
     create/3
 ]).
 
+-spec create(Name, TmpDir, Context) -> string() | 'undefined' when
+    Name:: string(),
+    TmpDir:: string(),
+    Context:: #context{}.
 %% Copied largely from mod_backup:archive
 %% Returns archive path, if any.
 create(Name, TmpDir, Context) ->
@@ -32,5 +36,6 @@ create(Name, TmpDir, Context) ->
     end.
 
 
+-spec archive_cmd() -> string().
 archive_cmd() ->
     z_convert:to_list(z_config:get(tar, "tar")).

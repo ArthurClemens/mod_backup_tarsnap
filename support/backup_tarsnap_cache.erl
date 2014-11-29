@@ -13,6 +13,9 @@
     get/1
 ]).
 
+
+-spec init(Context) -> atom() when
+    Context:: #context{}.
 init(Context) ->
     case z_db:table_exists(mod_backup_tarsnap_cache, Context) of
         false ->
@@ -42,6 +45,9 @@ init(Context) ->
     end.
 
 
+-spec put(ArchiveData, Context) -> [{'ok',_}] when
+    ArchiveData:: list(),
+    Context:: #context{}.
 put(ArchiveData, Context) ->
     % empty and fill up again
     z_db:q("TRUNCATE mod_backup_tarsnap_cache", Context),
@@ -56,6 +62,8 @@ put(ArchiveData, Context) ->
     end, ArchiveData).
 
 
+-spec get(Context) -> list() when
+    Context:: #context{}.
 get(Context) ->
     Query = "SELECT * FROM mod_backup_tarsnap_cache ORDER BY date desc",
     z_db:assoc(Query, Context).

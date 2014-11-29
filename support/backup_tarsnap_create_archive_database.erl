@@ -11,6 +11,10 @@
     create/3
 ]).
 
+-spec create(Name, TmpDir, Context) -> string() | 'undefined' when
+    Name:: string(),
+    TmpDir:: string(),
+    Context:: #context{}.
 %% Copied largely from mod_backup:pg_dump.
 %% Returns archive path, if any.
 create(Name, TmpDir, Context) ->
@@ -59,10 +63,13 @@ create(Name, TmpDir, Context) ->
     end.
 
 
+-spec dir(Context) -> string() when
+    Context:: #context{}.
 %% @doc Return and ensure the backup directory
 dir(Context) ->
     z_path:files_subdir_ensure(backup, Context).
 
 
+-spec db_dump_cmd() -> string().
 db_dump_cmd() ->
     z_convert:to_list(z_config:get(pg_dump, "pg_dump")).

@@ -16,7 +16,10 @@
     store/2,
     remove/1
 ]).
-  
+
+
+-spec check_configuration(Context) -> list() when
+    Context:: #context{}.
 check_configuration(Context) ->
     Db = which(db_dump_cmd()),
     Tar = which(archive_cmd()),
@@ -31,11 +34,14 @@ check_configuration(Context) ->
     ].
      
 
+-spec cleanup_before_backup() -> string().
 cleanup_before_backup() ->
     Cmd = "tarsnap --fsck",
     os:cmd(Cmd).
 
-   
+
+-spec archives(Context) -> list(string()) when
+    Context:: #context{}.
 %% Returns a list of archive names
 archives(Context) ->
     Cfg = backup_tarsnap_service:check_configuration(Context),
@@ -50,6 +56,9 @@ archives(Context) ->
     end.
 
 
+-spec archive_data(Archives, Context) -> list() when
+    Archives:: list(string()),
+    Context:: #context{}.
 %% Takes a list of archive names and returns the parsed data.
 archive_data(Archives, Context) ->
     Identifier = backup_tarsnap_archive:identifier(Context),
@@ -58,6 +67,9 @@ archive_data(Archives, Context) ->
     ArchiveData.
 
  
+-spec store(Name, Path) -> string() when
+    Name:: string(),
+    Path:: string().
 %% Store file as named archive.
 store(Name, Path) ->
     % options:
@@ -68,6 +80,8 @@ store(Name, Path) ->
     os:cmd(TarsnapCmd).
 
 
+-spec remove(Name) -> string() when
+    Name:: string().
 %% Remove archive.
 remove(Name) ->
     % options:
@@ -77,6 +91,8 @@ remove(Name) ->
     os:cmd(TarsnapCmd).
  
 
+-spec check_configuration_tarsnap(Context) -> boolean() when
+    Context:: #context{}.
 %% If tarsnap is configured properly, tarsnap will return a message containing the table with All archives.
 check_configuration_tarsnap(Context) ->
     ProcessingDir = z_path:files_subdir_ensure("processing", Context),
@@ -90,14 +106,22 @@ check_configuration_tarsnap(Context) ->
     end.
 
 
+-spec archive_cmd() -> string().
 archive_cmd() ->
     z_convert:to_list(z_config:get(tar, "tar")).
 
+
+-spec db_dump_cmd() -> string().
 db_dump_cmd() ->
     z_convert:to_list(z_config:get(pg_dump, "pg_dump")).
-    
+
+
+-spec tarsnap_cmd() -> string().
 tarsnap_cmd() ->
     z_convert:to_list(z_config:get(tarsnap, "tarsnap")).
 
+
+-spec which(Cmd) -> boolean() when
+    Cmd:: string().
 which(Cmd) ->
     filelib:is_regular(z_string:trim_right(os:cmd("which " ++ z_utils:os_escape(Cmd)))).

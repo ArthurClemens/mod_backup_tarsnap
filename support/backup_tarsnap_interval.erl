@@ -14,10 +14,17 @@
 
 -define(DEFAULT_DELTA_LIST, <<"1d 1w 1m 1y">>).
 
+
+-spec smallest(Job, Context) -> integer() when
+    Job:: string(),
+    Context:: #context{}.
 smallest(Job, Context) ->
     lists:nth(1, lists:sort(intervals(Job, Context))).
 
 
+-spec intervals(Job, Context) -> list() when
+    Job:: string(),
+    Context:: #context{}.
 intervals(Job, Context) ->
     IntervalString = case m_config:get_value(
         mod_backup_tarsnap,
@@ -32,9 +39,14 @@ intervals(Job, Context) ->
             <<>> -> ?DEFAULT_DELTA_LIST;
             Intervals -> Intervals
     end,
-    delta_strings_to_seconds(binary_to_list(IntervalString)).
+    Seconds = delta_strings_to_seconds(binary_to_list(IntervalString)),
+    lists:filter(fun(S) ->
+        S > 0
+    end, Seconds).
 
 
+-spec delta_strings_to_seconds(IntervalString) -> list(integer()) when
+    IntervalString:: list(binary()).
 delta_strings_to_seconds(IntervalString) ->
     IntervalTokens = string:tokens(IntervalString, " "),
     Pattern = "(\\d+)(h|d|w|m|y)*",
@@ -55,9 +67,9 @@ delta_strings_to_seconds(IntervalString) ->
                     "w" -> Count * 3600 * 24 * 7;
                     "m" -> Count * 3600 * 24 * 30;
                     "y" -> Count * 3600 * 24 * 365;
-                    _   -> undefined
+                    _   -> 0
                 end;
-            _ -> undefined
+            _ -> 0
         end
     end, IntervalTokens).
 
