@@ -16,7 +16,7 @@
 ]).
 
 
--spec identifier(Context) -> string() when
+-spec identifier(Context) -> nonempty_string() when
     Context:: #context{}.
 %% Use z_context:site or optionally config 'identifier'.
 identifier(Context) ->
@@ -32,18 +32,14 @@ identifier(Context) ->
     end.
 
 
--spec name(JobName, Context) -> string() when
+-spec name(JobName, Context) -> nonempty_string() when
     JobName:: string(),
     Context:: #context{}.
 %% Uses the same filename structure as mod_backup: id-dddddd-tttttt
 %% Takes the identifier and appends the current date-time.
 name(JobName, Context) ->
     DateStr = qdate:to_string("Ymd-His", calendar:universal_time()),
-    identifier(Context)
-        ++ "-"
-        ++ JobName
-        ++ "-"
-        ++ DateStr.
+    io_lib:format("~s-~s-~s", [identifier(Context), JobName, DateStr]).
 
 
 -spec parse_archive_names(Archives, Identifier) -> list(string()) when

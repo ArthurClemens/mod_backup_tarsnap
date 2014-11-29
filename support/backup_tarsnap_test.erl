@@ -8,65 +8,116 @@
 -include_lib("zotonic.hrl").
 
 -export([
-    backup/1,
-    delete/1
+    backup/2,
+    delete/3
 ]).
 
-backup(Context) ->
-    backup_tarsnap_create:backup(create_test_archives(Context), [
-        {test, true}
-    ], Context).
+-define(DAY_SECONDS, 3600 * 24).
 
-delete(Context) ->
-    backup_tarsnap_delete:delete(create_test_archives(Context), [
-        {test, true},
-        {date, {{2014,12,31},{22,45,0}}}
-    ], Context).
+-spec backup(Count, Context) -> any() when
+    Count:: integer(),
+    Context:: #context{}.
+backup(Count, Context) ->
+    CreateFun = fun days_back/1,
+    Archives = case Count of
+        0 -> [];
+        _ -> create_test_archives(CreateFun, Count, Context)
+    end,
+    ArchiveData = backup_tarsnap_service:archive_data(Archives, Context),
+    Job = "database",
+    JobArchives = [JobData || JobData <- ArchiveData, proplists:get_value(job, JobData) =:= Job],
+    mod_backup_tarsnap:dev_debug("ArchiveData=~p", [ArchiveData], Context),
+    mod_backup_tarsnap:dev_debug("JobArchives=~p", [JobArchives], Context),
+    case JobArchives of
+        [] ->
+            [Name, TmpDir] = backup_tarsnap_create:backup_name_dir(Job, Context),
+            mod_backup_tarsnap:dev_debug("New backup: ~p, ~p", [Name, TmpDir], Context);
+        _ -> 
+            [Name, TmpDir] = backup_tarsnap_create:backup_name_dir(Job, Context),
+            case backup_tarsnap_create:check_backup_needed(Job, JobArchives, Context) of
+                true ->
+                    mod_backup_tarsnap:dev_debug("New backup: ~p, ~p", [Name, TmpDir], Context);
+                false ->
+                    mod_backup_tarsnap:dev_debug("No backup", Context)
+            end
+    end.
 
-create_test_archives(Context) ->
-    TestDates = [
-        "20141103-220040",
-        "20141102-193700",
-        "20141101-120500",
-        "20141101-064500",
-        "20141031-235500",
-        "20141031-005500",
-        "20141030-230000",
-        "20141030-230100",
-        "20141030-200000",
-        "20141027-010000",
-        "20141027-004500",
-        "20141026-224500",
-        "20141026-211000",
-        "20141020-081000",
-        "20141019-071000",
-        "20141007-091500",
-        "20140903-020400",
-        "20140901-040400",
-        "20140830-040100",
-        "20140815-040100",
-        "20140701-040100",
-        "20140620-040100",
-        "20140531-040100",
-        "20140506-040100",
-        "20140331-040100",
-        "20140131-040100",
-        "20131228-040100",
-        "20131101-040100",
-        "20131023-040100",
-        "20130823-040100",
-        "20120806-040100",
-        "20120306-040100",
-        "20110906-040100",
-        "20110306-040100"
-    ],
+
+-spec delete(Count, Repeat, Context) -> any() when
+    Count:: integer(),
+    Repeat:: integer(),
+    Context:: #context{}.
+delete(Count, Repeat, Context) ->
+    CreateFun = fun days_back/1,
+%    CreateFun = fun months_back/1,
+    Archives = create_test_archives(CreateFun, Count, Context),
+    ArchiveData = backup_tarsnap_service:archive_data(Archives, Context),
+    Job = "database",
+    JobArchives = [JobData || JobData <- ArchiveData, proplists:get_value(job, JobData) =:= Job],
+    lists:foldl(fun(_L, JobArchives1) -> 
+        [{to_keep, UniqueToKeep}, {to_remove, ToRemove}] = backup_tarsnap_delete:calculate_candidates(Job, JobArchives1, Context),
+        mod_backup_tarsnap:dev_debug("To keep: ~p", [length(UniqueToKeep)], Context),
+        lists:map(fun(A) ->
+            mod_backup_tarsnap:dev_debug("\t ~p", [A], Context)
+        end, lists:sort(UniqueToKeep)),
+        mod_backup_tarsnap:dev_debug("To remove: ~p", [length(ToRemove)], Context),
+        lists:map(fun(A) ->
+            mod_backup_tarsnap:dev_debug("\t ~p", [A], Context)
+        end, lists:sort(ToRemove)),
+        mod_backup_tarsnap:dev_debug("-------", Context),
+        UniqueToKeep
+    end, JobArchives, lists:seq(1, Repeat)).
+
+
+-spec create_test_archives(CreateFun, Count, Context) -> list() when
+    CreateFun:: fun((_) -> list()),
+    Count:: integer(),
+    Context:: #context{}.
+create_test_archives(CreateFun, Count, Context) ->
+    TestDates = CreateFun(Count),
     Identifier = backup_tarsnap_archive:identifier(Context),
-    Jobs = backup_tarsnap_job:jobs(),
+    Jobs = ["database"], %backup_tarsnap_job:jobs(),
     Archives = lists:foldl(fun(Date, Acc) ->
         lists:foldl(fun(Job, Acc1) ->
             NameData = Identifier ++ "-" ++ Job ++ "-" ++ Date,
-            [[NameData] | Acc1]
+            [[NameData]|Acc1]
         end, Acc, Jobs)
     end, [], TestDates),
-    Archives1 = lists:concat(Archives),
-    Archives1.
+    mod_backup_tarsnap:dev_debug("Test archives:", Context),
+    lists:map(fun(A) ->
+        mod_backup_tarsnap:dev_debug("\t ~p", [A], Context)
+    end, lists:sort(Archives)),
+    lists:concat(Archives).
+   
+
+-spec days_back(DayCount) -> list(non_neg_integer()) when
+    DayCount:: non_neg_integer().
+days_back(DayCount) ->
+    Now = now_seconds(),
+    lists:map(fun(D) -> 
+        RandomRange = ?DAY_SECONDS / 0.8,
+        Random = RandomRange - random:uniform(round(2 * RandomRange)),
+        format_date(round(Now - (D * ?DAY_SECONDS) + Random))
+    end, lists:seq(0, DayCount)).
+
+
+-spec months_back(MonthCount) -> list(non_neg_integer()) when
+    MonthCount:: non_neg_integer().
+months_back(MonthCount) ->
+    Now = now_seconds(),
+    lists:map(fun(D) -> 
+        RandomRange = ?DAY_SECONDS * 30 / 0.8,
+        Random = RandomRange - random:uniform(round(2 * RandomRange)),
+        format_date(round(Now - (D * 30.3 * ?DAY_SECONDS) + Random))
+    end, lists:seq(0, MonthCount)).
+
+
+-spec now_seconds() -> integer().
+now_seconds() ->
+    Now = erlang:now(),
+    qdate:to_unixtime(Now).
+
+-spec format_date(Date) -> string() when
+    Date:: integer().
+format_date(Date) ->
+    qdate:to_string("Ymd-His", Date).

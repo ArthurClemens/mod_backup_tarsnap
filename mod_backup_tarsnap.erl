@@ -26,6 +26,8 @@
     manage_schema/2,
     observe_admin_menu/3,
     debug/2,
+    dev_debug/2,
+    dev_debug/3,
     broadcast_error/2
 ]).
 
@@ -112,7 +114,7 @@ broadcast_error(Result, Context) ->
 
 
 debug(Msg, Context) ->
-%    lager:info("debug: ~s", [Msg]),
+    dev_debug("debug: ~s", [Msg], Context),
     case z_convert:to_bool(m_config:get_value(
         mod_backup_tarsnap,
         debug,
@@ -120,6 +122,20 @@ debug(Msg, Context) ->
     )) of
         true ->
             z:debug(Msg, Context);
+        _ -> undefined
+    end.
+
+dev_debug(Msg, Context) ->
+    dev_debug(Msg, [], Context).
+    
+dev_debug(Msg, Args, Context) ->
+    case z_convert:to_bool(m_config:get_value(
+        mod_backup_tarsnap,
+        dev_debug,
+        Context
+    )) of
+        true ->
+            lager:info(Msg, Args);
         _ -> undefined
     end.
 

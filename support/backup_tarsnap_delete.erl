@@ -9,7 +9,10 @@
 
 -export([
     delete/1,
-    delete/3
+    delete/2,
+    
+    % for testing:
+    calculate_candidates/3
 ]).
 
 
@@ -17,14 +20,13 @@
     Context:: #context{}.
 delete(Context) ->
     Archives = backup_tarsnap_service:archives(Context),
-    delete(Archives, [], Context).
+    delete(Archives, Context).
 
 
--spec delete(Archives, Options, Context) -> any() when
+-spec delete(Archives, Context) -> any() when
     Archives:: list(),
-    Options:: list({test, boolean()} | {date, tuple()} | []),
     Context:: #context{}.
-delete(Archives, Options, Context) ->
+delete(Archives, Context) ->
     Cfg = backup_tarsnap_service:check_configuration(Context),
     case proplists:get_value(ok, Cfg) of
         true ->
@@ -32,34 +34,47 @@ delete(Archives, Options, Context) ->
             % handle jobs
             lists:foreach(fun(Job) ->
                 JobArchives = [JobData || JobData <- ArchiveData, proplists:get_value(job, JobData) =:= Job],
-                maybe_delete_for_job(Job, JobArchives, Options, Context)
+                maybe_delete_for_job(Job, JobArchives, Context)
             end, backup_tarsnap_job:jobs());
         false ->
             mod_backup_tarsnap:debug("Tarsnap is not configured properly.", Context)
     end.
     
 
--spec maybe_delete_for_job(Job, JobArchives, Options, Context) -> any() when
+-spec maybe_delete_for_job(Job, JobArchives, Context) -> any() when
     Job:: string(),
     JobArchives:: list(),
-    Options:: list({test, boolean()} | {date, tuple()} | []),
     Context:: #context{}.
-maybe_delete_for_job(Job, JobArchives, _Options, Context) when JobArchives =:= [] ->
+maybe_delete_for_job(Job, JobArchives, Context) when JobArchives =:= [] ->
     mod_backup_tarsnap:debug(io_lib:format("Assess delete job '~s'...", [Job]), Context),
     mod_backup_tarsnap:debug("No archives found, nothing to delete.", Context);
 
-maybe_delete_for_job(Job, JobArchives, _Options, Context) when length(JobArchives) =:= 1 ->
+maybe_delete_for_job(Job, JobArchives, Context) when length(JobArchives) =:= 1 ->
     mod_backup_tarsnap:debug(io_lib:format("Assess delete job '~s'...", [Job]), Context),
     mod_backup_tarsnap:debug("Only 1 archive exists, so nothing to delete.", Context);
     
-maybe_delete_for_job(Job, JobArchives, Options, Context) ->
+maybe_delete_for_job(Job, JobArchives, Context) ->
     mod_backup_tarsnap:debug(io_lib:format("Assess delete job '~s'...", [Job]), Context),
+    [{to_keep, _UniqueToKeep}, {to_remove, ToRemove}] = calculate_candidates(Job, JobArchives, Context),
+    case length(ToRemove) of
+        0 ->
+            mod_backup_tarsnap:debug("No backups to remove.", Context);
+        _ -> 
+            ToRemoveNames = backup_tarsnap_archive:archive_names(ToRemove),
+            do_delete(ToRemoveNames, Context)
+    end.
     
+    
+-spec calculate_candidates(Job, JobArchives, Context) -> list(tuple()) when
+    Job:: string(),
+    JobArchives:: list(),
+    Context:: #context{}.
+calculate_candidates(Job, JobArchives, Context) ->
     % Add property 'index' in order of the dates (from new to old)
     % so we have a handle of items to remove
     IndexedArchives = index_archives(JobArchives),
     
-    Now = proplists:get_value(date, Options, calendar:universal_time()),
+    Now = calendar:universal_time(),
     NowSeconds = calendar:datetime_to_gregorian_seconds(Now),
     
     % reverse sort intervals
@@ -69,53 +84,77 @@ maybe_delete_for_job(Job, JobArchives, Options, Context) ->
     
     {ToKeep, _} = lists:foldl(fun(Interval, {ToKeep, WorkingArchives}) ->
         TargetTime = NowSeconds - Interval,
-        %% trim down possible candidates by looking at a smaller time window
-        Candidates = prune_archives(TargetTime, Interval, WorkingArchives),
+        
+        mod_backup_tarsnap:dev_debug("---", Context),
+        mod_backup_tarsnap:dev_debug("TargetTime: ~p, Interval=~p, in days=~p", [calendar:gregorian_seconds_to_datetime(TargetTime), Interval, Interval/(24*3600)], Context),
+        
+        % trim down possible candidates by looking at a smaller time window
+        % we use half an interval
+        Candidates = prune_archives(TargetTime, Interval/2, WorkingArchives),
+        
+        mod_backup_tarsnap:dev_debug("Candidates:", Context),
+        case length(Candidates) of
+            0 -> mod_backup_tarsnap:dev_debug("\t no candidates", Context);
+            _ ->
+                lists:map(fun(C) ->
+                    mod_backup_tarsnap:dev_debug("\t ~p", [C], Context)
+                end, lists:sort(Candidates))
+        end,
+        
         % Number of existing steps in this cycle
         StepCount = get_step_count(TargetTime, Interval, Candidates),
-        RawStepArchives = lists:foldl(fun(Step, Acc1) ->
+        mod_backup_tarsnap:dev_debug("Number of existing steps in this cycle: ~p", [StepCount], Context),
+        
+        ClosestCandidates = lists:foldl(fun(Step, Acc1) ->
             GroupTargetTime = TargetTime - (Step * Interval),
-            case find_closest_backup_in_range(GroupTargetTime, Interval, Candidates) of 
-                undefined -> Acc1;
+            case find_closest_backup_in_range(GroupTargetTime, Interval/2, Candidates, Context) of 
+                [] -> Acc1;
                 Closest -> [Closest|Acc1]
             end
         end, [], lists:seq(0, StepCount - 1)),
-        {ToAdd, CleanedWorking} = case RawStepArchives of
-            [] -> {[], WorkingArchives};
+        
+        mod_backup_tarsnap:dev_debug("ClosestCandidates:", Context),
+        case length(ClosestCandidates) of
+            0 -> mod_backup_tarsnap:dev_debug("\t no closest candidates", Context);
             _ -> 
-                StepArchives = lists:reverse(lists:sort(fun sort_by_date/2, lists:usort(RawStepArchives))),
-                % add these to "keep", then remove everything older than newest from WorkingArchives
-                NewestStepArchive = lists:nth(1, StepArchives),
-                NewestStepArchiveIndex = proplists:get_value(index, NewestStepArchive),
-                Cleaned = remove_from_list(NewestStepArchiveIndex, WorkingArchives),
-                {StepArchives, Cleaned}
-        end,            
-        {ToAdd ++ ToKeep, CleanedWorking}
+                lists:map(fun(C) ->
+                    mod_backup_tarsnap:dev_debug("\t ~p", [C], Context)
+                end, lists:sort(ClosestCandidates))
+        end,
+        
+        {MarkAsKeep, CleanedWorking} = case ClosestCandidates of
+            [] ->
+                {[], WorkingArchives};
+            _ -> 
+                % add ClosestCandidates to "keep", then remove everything older  from WorkingArchives
+                ClosestCandidatesOldestFirst = lists:reverse(lists:sort(fun sort_by_date/2, ClosestCandidates)),
+                OldestClosest = lists:nth(1, ClosestCandidatesOldestFirst),
+                OldestClosestIndex = proplists:get_value(index, OldestClosest),
+                MaybeKeepLater = remove_from_list(OldestClosestIndex, WorkingArchives),
+                
+                mod_backup_tarsnap:dev_debug("MaybeKeepLater:", Context),
+                lists:map(fun(C) ->
+                    mod_backup_tarsnap:dev_debug("\t ~p", [C], Context)
+                end, lists:sort(MaybeKeepLater)),
+                
+                {ClosestCandidates, MaybeKeepLater}
+        end,
+        {MarkAsKeep ++ ToKeep, CleanedWorking}
     end, {[lists:nth(1, IndexedArchives)], IndexedArchives}, Intervals),
     UniqueToKeep = lists:usort(ToKeep),
     ToRemove = IndexedArchives -- UniqueToKeep,
-    case length(ToRemove) of
-        0 ->
-            case proplists:get_value(test, Options, false) of
-                true ->
-                    mod_backup_tarsnap:debug("No backups to remove.", Context),
-                    mod_backup_tarsnap:debug(io_lib:format("~p backups to keep.", [length(UniqueToKeep)]), Context),
-                    mod_backup_tarsnap:debug("Test ends here.", Context);
-                false ->
-                    mod_backup_tarsnap:debug("No backups to remove.", Context)
-            end;
-        _ -> 
-            ToRemoveNames = backup_tarsnap_archive:archive_names(ToRemove),
-            case proplists:get_value(test, Options, false) of
-                true ->
-                    ToKeepNames = backup_tarsnap_archive:archive_names(UniqueToKeep),
-                    mod_backup_tarsnap:debug(io_lib:format("These archives will be kept: ~p", [ToKeepNames]), Context),
-                    mod_backup_tarsnap:debug(io_lib:format("These archives will be removed: ~p", [ToRemoveNames]), Context),
-                    mod_backup_tarsnap:debug("Test ends here.", Context);
-                false ->
-                    do_delete(ToRemoveNames, Context)
-            end
-    end.
+    
+    mod_backup_tarsnap:dev_debug("To keep:", Context),
+    lists:map(fun(C) ->
+        mod_backup_tarsnap:dev_debug("\t ~p", [C], Context)
+    end, lists:sort(ToKeep)),
+    
+    mod_backup_tarsnap:dev_debug("To remove:", Context),
+    lists:map(fun(C) ->
+        mod_backup_tarsnap:dev_debug("\t ~p", [C], Context)
+    end, lists:sort(ToRemove)),
+    
+    [{to_keep, remove_index(UniqueToKeep)}, {to_remove, remove_index(ToRemove)}].
 
 
 -spec do_delete(Names, Context) -> list() when
@@ -140,13 +179,21 @@ index_archives(Archives) ->
     lists:reverse(lists:sort(fun sort_by_date/2, Indexed)).
     
 
--spec prune_archives(Time, Interval, Archives) -> list() when
-    Time:: integer(),
-    Interval:: integer(),
+-spec remove_index(Archives) -> list() when
     Archives:: list().
-prune_archives(Time, Interval, Archives) ->
+remove_index(Archives) ->
+    lists:map(fun(L) ->
+        proplists:delete(index, L)
+    end, Archives).
+
+
+-spec prune_archives(Time, LookupInterval, Archives) -> list() when
+    Time:: non_neg_integer(),
+    LookupInterval:: float(),
+    Archives:: list().
+prune_archives(Time, LookupInterval, Archives) ->
     % include archives that are half a interval younger, plus all older
-    Youngest = Time + Interval/2,
+    Youngest = Time + LookupInterval,
     lists:filter(fun(Archive) ->
         Date = proplists:get_value(date, Archive),
         DateSeconds = calendar:datetime_to_gregorian_seconds(Date),
@@ -155,7 +202,7 @@ prune_archives(Time, Interval, Archives) ->
     
 
 -spec get_step_count(Time, Interval, Archives) -> integer() when
-    Time:: integer(),
+    Time:: non_neg_integer(),
     Interval:: integer(),
     Archives:: list().
 get_step_count(_Time, _Interval, Archives) when length(Archives) =:= 0 ->
@@ -169,34 +216,43 @@ get_step_count(Time, Interval, Archives) ->
     ceiling((StartTime - OldestSeconds) / Interval).
 
 
--spec find_closest_backup_in_range(Date, Interval, Archives) -> integer() | 'undefined' when
+-spec find_closest_backup_in_range(Date, LookupInterval, Archives, Context) -> list() when
     Date:: integer(),
-    Interval:: integer(),
-    Archives:: list().
+    LookupInterval:: float(),
+    Archives:: list(),
+    Context:: #context{}.
 %% Find the closest matching date for given date.
 %% Search in the range: Date +- Interval/2 
-find_closest_backup_in_range(Date, Interval, Archives) ->
+find_closest_backup_in_range(Date, LookupInterval, Archives, Context) ->
+    mod_backup_tarsnap:dev_debug("find_closest_backup_in_range: ~p, interval=~p, in days=~p", [calendar:gregorian_seconds_to_datetime(Date), LookupInterval, LookupInterval/(24*3600)], Context),
+    
     Diffed = lists:foldl(fun(Archive, Acc) ->
         ArchiveDate = proplists:get_value(date, Archive),
         ArchiveDateSeconds = calendar:datetime_to_gregorian_seconds(ArchiveDate),
         Diff = abs(Date - ArchiveDateSeconds),
-        case Diff > Interval/2 of
-            true -> Acc;
-            false -> 
-                Archive1 = [{diff, Diff}|Archive],
-                [Archive1|Acc]
-        end
+        [[{diff, Diff}|Archive] | Acc]
     end, [], Archives),
-    Closest = case Diffed of
-        [] -> undefined;
+
+    ValidDiffed = lists:filter(fun(D) ->
+        proplists:get_value(diff, D) =< LookupInterval
+    end, Diffed),
+    
+    mod_backup_tarsnap:dev_debug("ValidDiffed:", Context),
+    lists:map(fun(C) ->
+        mod_backup_tarsnap:dev_debug("\t ~p", [C], Context)
+    end, lists:sort(ValidDiffed)),
+
+    case ValidDiffed of
+        [] -> [];
         _ -> 
-            Sorted = lists:reverse(lists:sort(fun sort_by_diff/2, Diffed)),
+            Sorted = lists:sort(fun sort_by_diff/2, ValidDiffed),
+            % remove 'diff' property
             Sorted1 = lists:map(fun(Archive) ->
                 proplists:delete(diff, Archive)
             end, Sorted),
+            % return the first item
             lists:nth(1, Sorted1)
-    end,
-    Closest.
+    end.
 
 
 -spec remove_from_list(FromIndex, Archives) -> list() when
