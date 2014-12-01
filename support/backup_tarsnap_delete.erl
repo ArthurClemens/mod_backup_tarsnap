@@ -82,7 +82,7 @@ calculate_candidates(Job, JobArchives, Context) ->
     % start with last cycle
     Intervals = lists:reverse(lists:sort(backup_tarsnap_interval:intervals(Job, Context))),
     
-    {ToKeep, _} = lists:foldl(fun(Interval, {ToKeep, WorkingArchives}) ->
+    {ToKeep1, _, _} = lists:foldl(fun(Interval, {ToKeep, WorkingArchives, PreviousInterval}) ->
         TargetTime = NowSeconds - Interval,
         
         mod_backup_tarsnap:dev_debug("---", Context),
@@ -102,7 +102,11 @@ calculate_candidates(Job, JobArchives, Context) ->
         end,
         
         % Number of existing steps in this cycle
-        StepCount = get_step_count(TargetTime, Interval, Candidates),
+        StepCount = case PreviousInterval of
+            undefined -> get_step_count(TargetTime, Interval, Candidates);
+            _ -> round(PreviousInterval / Interval) - 1
+        end,
+        
         mod_backup_tarsnap:dev_debug("Number of existing steps in this cycle: ~p", [StepCount], Context),
         
         ClosestCandidates = lists:foldl(fun(Step, Acc1) ->
@@ -139,15 +143,15 @@ calculate_candidates(Job, JobArchives, Context) ->
                 
                 {ClosestCandidates, MaybeKeepLater}
         end,
-        {MarkAsKeep ++ ToKeep, CleanedWorking}
-    end, {[lists:nth(1, IndexedArchives)], IndexedArchives}, Intervals),
-    UniqueToKeep = lists:usort(ToKeep),
+        {MarkAsKeep ++ ToKeep, CleanedWorking, Interval}
+    end, {[lists:nth(1, IndexedArchives)], IndexedArchives, undefined}, Intervals),
+    UniqueToKeep = lists:usort(ToKeep1),
     ToRemove = IndexedArchives -- UniqueToKeep,
     
     mod_backup_tarsnap:dev_debug("To keep:", Context),
     lists:map(fun(C) ->
         mod_backup_tarsnap:dev_debug("\t ~p", [C], Context)
-    end, lists:sort(ToKeep)),
+    end, lists:sort(ToKeep1)),
     
     mod_backup_tarsnap:dev_debug("To remove:", Context),
     lists:map(fun(C) ->
@@ -201,9 +205,9 @@ prune_archives(Time, LookupInterval, Archives) ->
     end, Archives).
     
 
--spec get_step_count(Time, Interval, Archives) -> integer() when
+-spec get_step_count(Time, Interval, Archives) -> non_neg_integer() when
     Time:: non_neg_integer(),
-    Interval:: integer(),
+    Interval:: non_neg_integer(),
     Archives:: list().
 get_step_count(_Time, _Interval, Archives) when length(Archives) =:= 0 ->
     0;
@@ -236,11 +240,6 @@ find_closest_backup_in_range(Date, LookupInterval, Archives, Context) ->
     ValidDiffed = lists:filter(fun(D) ->
         proplists:get_value(diff, D) =< LookupInterval
     end, Diffed),
-    
-    mod_backup_tarsnap:dev_debug("ValidDiffed:", Context),
-    lists:map(fun(C) ->
-        mod_backup_tarsnap:dev_debug("\t ~p", [C], Context)
-    end, lists:sort(ValidDiffed)),
 
     case ValidDiffed of
         [] -> [];

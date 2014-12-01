@@ -12,6 +12,7 @@
     delete/3
 ]).
 
+-define(HOUR_SECONDS, 3600).
 -define(DAY_SECONDS, 3600 * 24).
 
 -spec backup(Count, Context) -> any() when
@@ -50,6 +51,7 @@ backup(Count, Context) ->
 delete(Count, Repeat, Context) ->
     CreateFun = fun days_back/1,
 %    CreateFun = fun months_back/1,
+%    CreateFun = fun hours_back/1,
     Archives = create_test_archives(CreateFun, Count, Context),
     ArchiveData = backup_tarsnap_service:archive_data(Archives, Context),
     Job = "database",
@@ -83,10 +85,6 @@ create_test_archives(CreateFun, Count, Context) ->
             [[NameData]|Acc1]
         end, Acc, Jobs)
     end, [], TestDates),
-    mod_backup_tarsnap:dev_debug("Test archives:", Context),
-    lists:map(fun(A) ->
-        mod_backup_tarsnap:dev_debug("\t ~p", [A], Context)
-    end, lists:sort(Archives)),
     lists:concat(Archives).
    
 
@@ -99,6 +97,16 @@ days_back(DayCount) ->
         Random = RandomRange - random:uniform(round(2 * RandomRange)),
         format_date(round(Now - (D * ?DAY_SECONDS) + Random))
     end, lists:seq(0, DayCount)).
+
+-spec hours_back(HourCount) -> list(non_neg_integer()) when
+    HourCount:: non_neg_integer().
+hours_back(HourCount) ->
+    Now = now_seconds(),
+    lists:map(fun(H) -> 
+        RandomRange = ?HOUR_SECONDS / 0.8,
+        Random = RandomRange - random:uniform(round(2 * RandomRange)),
+        format_date(round(Now - (H * ?HOUR_SECONDS) + Random))
+    end, lists:seq(0, HourCount)).
 
 
 %-spec months_back(MonthCount) -> list(non_neg_integer()) when
