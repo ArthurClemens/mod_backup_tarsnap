@@ -98,15 +98,16 @@ days_back(DayCount) ->
         format_date(round(Now - (D * ?DAY_SECONDS) + Random))
     end, lists:seq(0, DayCount)).
 
--spec hours_back(HourCount) -> list(non_neg_integer()) when
-    HourCount:: non_neg_integer().
-hours_back(HourCount) ->
-    Now = now_seconds(),
-    lists:map(fun(H) -> 
-        RandomRange = ?HOUR_SECONDS / 0.8,
-        Random = RandomRange - random:uniform(round(2 * RandomRange)),
-        format_date(round(Now - (H * ?HOUR_SECONDS) + Random))
-    end, lists:seq(0, HourCount)).
+
+%-spec hours_back(HourCount) -> list(non_neg_integer()) when
+%    HourCount:: non_neg_integer().
+%hours_back(HourCount) ->
+%    Now = now_seconds(),
+%    lists:map(fun(H) -> 
+%        RandomRange = ?HOUR_SECONDS / 0.8,
+%        Random = RandomRange - random:uniform(round(2 * RandomRange)),
+%        format_date(round(Now - (H * ?HOUR_SECONDS) + Random))
+%    end, lists:seq(0, HourCount)).
 
 
 %-spec months_back(MonthCount) -> list(non_neg_integer()) when
