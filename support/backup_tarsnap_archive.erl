@@ -81,16 +81,19 @@ parse_archive_parts(Identifier, Archive) ->
         "$",
     case re:run(Archive, Pattern, [global,{capture,all,list}]) of 
         {match, [[_Match, Job, Year, Mon, Day, Hour, Min, Sec]]} -> 
+            Date = {{
+                list_to_integer(Year),
+                list_to_integer(Mon),
+                list_to_integer(Day)
+            },{
+                list_to_integer(Hour),
+                list_to_integer(Min),
+                list_to_integer(Sec)
+            }},
+            DateSeconds = calendar:datetime_to_gregorian_seconds(Date),
             [
-                {date, {{
-                    list_to_integer(Year),
-                    list_to_integer(Mon),
-                    list_to_integer(Day)
-                },{
-                    list_to_integer(Hour),
-                    list_to_integer(Min),
-                    list_to_integer(Sec)
-                }}},
+                {date, Date},
+                {date_seconds, DateSeconds},
                 {job, Job},
                 {archive, Archive}
             ];

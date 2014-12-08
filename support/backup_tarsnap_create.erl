@@ -74,7 +74,7 @@ check_backup_needed(Job, JobArchives, Context) ->
     [NewestArchive|_Rest] = Sorted,
     
     % take the smallest interval
-    IntervalSeconds = backup_tarsnap_interval:smallest(Job, Context),
+    {_, IntervalSeconds} = round(backup_tarsnap_interval:smallest(Job, Context)),
     NowSeconds = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
     NewestArchiveSeconds = backup_tarsnap_archive:date_seconds(NewestArchive),    
     NextBackupSeconds = NewestArchiveSeconds + IntervalSeconds,

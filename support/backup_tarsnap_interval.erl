@@ -19,7 +19,7 @@
     Job:: string(),
     Context:: #context{}.
 smallest(Job, Context) ->
-    lists:nth(1, lists:sort(intervals(Job, Context))).
+    lists:nth(1, lists:sort(fun sort_by_seconds/2, intervals(Job, Context))).
 
 
 -spec intervals(Job, Context) -> list() when
@@ -40,9 +40,10 @@ intervals(Job, Context) ->
             Intervals -> Intervals
     end,
     Seconds = delta_strings_to_seconds(binary_to_list(IntervalString)),
-    lists:filter(fun(S) ->
+    NonZeroes = lists:filter(fun({_, S}) ->
         S > 0
-    end, Seconds).
+    end, Seconds),
+    lists:sort(fun sort_by_seconds/2, NonZeroes).
 
 
 -spec delta_strings_to_seconds(IntervalString) -> list(integer()) when
@@ -62,14 +63,17 @@ delta_strings_to_seconds(IntervalString) ->
             {match, [[_Match, CountStr, Type]]} -> 
                 Count = list_to_integer(CountStr),
                 case Type of
-                    "h" -> Count * 3600;
-                    "d" -> Count * 3600 * 24;
-                    "w" -> Count * 3600 * 24 * 7;
-                    "m" -> Count * 3600 * 24 * 30;
-                    "y" -> Count * 3600 * 24 * 365;
-                    _   -> 0
+                    "h" -> {h, Count * 3600};
+                    "d" -> {d, Count * 3600 * 24};
+                    "w" -> {w, Count * 3600 * 24 * 7};
+                    "m" -> {m, Count * 3600 * 24 * 30};
+                    "y" -> {y, Count * 3600 * 24 * 365};
+                    _   -> {x, 0}
                 end;
-            _ -> 0
+            _ -> {x, 0}
         end
     end, IntervalTokens).
 
+
+sort_by_seconds({_, A}, {_, B}) ->
+    A =< B.
