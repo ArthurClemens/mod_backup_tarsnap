@@ -154,7 +154,7 @@ hours_back(HourCount) ->
 
 
 generate_test_date(Job, DateSeconds, Context) ->
-    RandomRange = ?HOUR_SECONDS * 0.3,
+    RandomRange = ?HOUR_SECONDS * 7,
     Random = RandomRange - random:uniform(round(2 * RandomRange)),
     Seconds = round(DateSeconds - Random),
     Date = calendar:gregorian_seconds_to_datetime(Seconds),

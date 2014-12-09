@@ -128,6 +128,7 @@ distribute_archives_to_buckets(Archives, IntervalData) ->
 prune_buckets(Buckets) ->
     Pruned = lists:foldl(fun(Bucket, Acc) ->
         Archives = proplists:get_value(archives, Bucket),
+        Count = proplists:get_value(count, Bucket),
         DistributionInterval = proplists:get_value(distribution, Bucket),
         Sorted = lists:sort(fun sort_by_date/2, Archives),
         Keep = case Sorted of 
@@ -168,15 +169,19 @@ prune_buckets(Buckets) ->
                             % keep the last item
                             {[clean_interval_props(A)|Acc2], Date};
                         _ -> 
-                            % allow for a little bit of randomized intervals
+                            % allow for a little bit of randomization in interval input
                             MaxInterval = DistributionInterval * 0.9,
                             Before = proplists:get_value(interval_before, A, ?ST_JUTTEMIS_SECONDS),
                             After = proplists:get_value(interval_after, A, ?ST_JUTTEMIS_SECONDS),
-                            case
+                            ExpireCondition =
                                 (Before < MaxInterval) and
                                 (After < MaxInterval) and
-                                (((Before + After) / 2) < MaxInterval)
-                            of
+                                (((Before + After) / 2) < MaxInterval),
+                            ExpireCondition1 = case (Count =/= undefined) of
+                                true -> ExpireCondition and (length(Archives) > Count);
+                                false -> ExpireCondition
+                            end,
+                            case ExpireCondition1 of
                                 true ->
                                     {Acc2, Date};
                                 false ->
