@@ -41,6 +41,15 @@ Inspired by [Tarsnapper](https://github.com/miracle2k/tarsnapper).
 * The most recent archive is always kept.
 
 
+## Some questions you might have
+
+### I am seeing more archives than I was expecting
+
+tl;dr: These are extra items to preserve archives when they gradually migrate from new to old.
+
+Internally, archives are grouped into time buckets (these are just groups of time). When an item expires from a time bucket, it will move to the next bucket (for instance from "days" to "weeks"). This newer archive (from the older bucket point of view) will be kept as a next generation item. This mechanism preserves a fresh flow from new to old. 
+
+
 ## Configuration
 
 ### Intervals
