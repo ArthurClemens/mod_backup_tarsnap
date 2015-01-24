@@ -85,6 +85,13 @@ If you are running Zotonic in debug mode, let the module write debug info to the
 | mod_backup_tarsnap | debug          | -  |
 
 
+### Testing backups
+
+If you are running backups on your local machine:
+
+* Use a different identifier, for instance "test-[your host name]"
+* Deactivate your local mod_backup_tarsnap before running it on the live server. See "Known problems". Or use a different key for testing.
+
 
 ## Installation
 
@@ -128,4 +135,7 @@ Activate this module in Admin > System > Modules.
 
 ## Known problems
 
-* Tarsnap with multiple sites may raise errors sometimes because of concurrency problems: "You can't run two {create, delete} operations at the same time using the same cache directory". This will be fixed.
+* It is a bad idea to run backups on different machines using the same key. Tarsnap's cache directory gets easily mixed up and backups will no longer being made. Steps to fix:
+  * Deactivate mod_backup_tarsnap on your local machine.
+  * On the live server, empty the cache dir and rebuild using ``tarsnap --fsck``
+* Tarsnap with multiple sites may raise errors sometimes because of concurrency problems: "You can't run two {create, delete} operations at the same time using the same cache directory".
