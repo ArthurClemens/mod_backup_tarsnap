@@ -50,11 +50,11 @@ manage_schema(install, Context) ->
 
 observe_admin_menu(admin_menu, Acc, Context) ->
     [
-     #menu_item{id=yaml_import,
+     #menu_item{id=mod_backup_tarsnap,
                 parent=admin_modules,
                 label=?__("Backup with Tarsnap", Context),
                 url={admin_backup_tarsnap},
-                visiblecheck={acl, use, admin_backup_tarsnap}}
+                visiblecheck={acl, use, mod_backup_tarsnap}}
      |Acc].
 
  
