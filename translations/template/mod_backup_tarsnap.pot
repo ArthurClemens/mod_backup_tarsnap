@@ -1,0 +1,107 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+# NB: Consider using poEdit <http://poedit.sourceforge.net>
+#
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ./user/modules/mod_backup_tarsnap/templates/_backup_tarsnap_archives.tpl:8 
+msgid ""
+"Archive name"
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/_backup_tarsnap_archives.tpl:10 
+msgid ""
+"Backup date"
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:28 
+msgid ""
+"Backup is standby."
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:24 
+msgid ""
+"Backup is working."
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:8 ./user/modules/mod_backup_tarsnap/mod_backup_tarsnap.erl:55 
+msgid ""
+"Backup with Tarsnap"
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/_backup_tarsnap_archives.tpl:9 
+msgid ""
+"Job"
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:10 
+msgid ""
+"Manage backups of database and files to the Tarsnap online backup service."
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/_backup_tarsnap_archives.tpl:32 
+msgid ""
+"No archives present."
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:3 
+msgid ""
+"Tarsnap Backup"
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:45 
+msgid ""
+"Tarsnap is not configured properly. Make sure you have set \"tarsnap.conf\" "
+"or \"~/.tarsnaprc\" that defines \"cachedir\" and \"keyfile\", then return to "
+"this page."
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:42 
+msgid ""
+"The \"pg_dump\" command was not found in the path. Set the \"pg_dump\" config "
+"key to the path to pg_dump and return to this page."
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:43 
+msgid ""
+"The \"tar\" command was not found in the path. Set the \"tar\" config key to "
+"the path to tar and return to this page."
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:44 
+msgid ""
+"The \"tarsnap\" command was not found in the path. Set the \"tarsnap\" config "
+"key to the path to tarsnap and return to this page."
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:51 
+msgid ""
+"This page shows the list of automatically created archives. Read the <a "
+"href=\"https://github.com/ArthurClemens/mod_backup_tarsnap\">module "
+"documentation</a> to change default settings."
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:40 
+msgid ""
+"Warning:"
+msgstr ""
+
+#: ./user/modules/mod_backup_tarsnap/templates/admin_backup_tarsnap.tpl:40 
+msgid ""
+"Your backup is not correctly configured. The backup module will not work "
+"until the problem(s) below have been resolved:"
+msgstr ""
