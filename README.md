@@ -25,7 +25,7 @@ Inspired by [Tarsnapper](https://github.com/miracle2k/tarsnapper).
 
 * The backup schema is defined by freeform time interval ranges (default: "1d 1w 1m 1y").
 * Each interval value defines a cycle that ends at the next interval; the first cycle runs from 1 day to 1 week old; the second from 1 week to 1 month.
-* The default values will maintain 7 daily backups, 4 weekly backups, 12 montly backups, and after that one backup for each year.
+* The default values will maintain 7 daily backups, 4 weekly backups, 12 monthly backups, and after that one backup for each year.
 * You can use  both `120` and `2h` for 2 hours; `3d` for 3 days; `6m` for six months; and so on. The minimum interval is `10` (minutes) to reduce the load on the server and to prevent overlapping backup tasks.
 * The smallest interval defines when new backups should be created: as soon as the most recent backup is older than this value (default: 1 day).
 
