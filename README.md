@@ -1,5 +1,8 @@
 # Zotonic module to create backups with Tarsnap
 
+**Update: this module is obsolete (the rotation scheme causes a lot of mutations, driving up costs when storing data via the Tarsnap service and Amazon S3). Use [mod_rotation_backup](https://github.com/ArthurClemens/mod_rotation_backup) instead.**
+
+
 Manage backups of database and files to the Tarsnap online backup service ("Online backups for the truly paranoid"). Because backups stored on your own webserver are not safe enough.
 
 * Automatically creates backups and stores them - outside of your own server - with Tarsnap.
